@@ -47,3 +47,15 @@ Workflow file: `.github/workflows/android.yml`
 2. Wake-word support (on-device trigger)
 3. Tool integration (email, WhatsApp Business API, social APIs)
 4. Approval workflow for high-risk business actions
+
+## Phone-only flow (No PR merge required)
+
+If you are working only from phone and cannot resolve PR conflicts:
+
+1. Push code to any branch (or keep using `work`).
+2. Open **Actions** tab.
+3. Run workflow: **Manual APK Build (No PR Needed)**.
+4. Select `debug` or `release`.
+5. Download APK from workflow artifacts.
+
+This path does not require creating or merging a pull request first.
