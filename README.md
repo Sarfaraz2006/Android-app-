@@ -59,3 +59,18 @@ If you are working only from phone and cannot resolve PR conflicts:
 5. Download APK from workflow artifacts.
 
 This path does not require creating or merging a pull request first.
+
+## PR automation and merge safety
+
+The CI workflow now does two automatic checks on each PR:
+
+- **PR mergeability check**: fails if GitHub reports merge conflicts or blocked merge state.
+- **APK build check**: builds and uploads `app-debug.apk` artifact automatically.
+
+To make this fully automatic in GitHub:
+
+1. Go to **Settings -> Branches -> Branch protection rules** for your main branch.
+2. Mark these checks as required before merge:
+   - `pr-merge-check`
+   - `build`
+3. (Optional) enable auto-merge in repository settings so PR merges immediately after checks pass.
