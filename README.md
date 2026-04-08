@@ -1,14 +1,16 @@
 # Voice Assistant Android App
 
-This repository now contains a native Android starter app focused on the first milestone: **a conversational voice assistant**.
+Native Android starter app for a conversational voice assistant.
 
 ## What is implemented
 
-- Push-to-talk voice input (Android SpeechRecognizer)
+- Push-to-talk voice input using Android `SpeechRecognizer`
+- Partial transcript preview while listening
 - AI response generation via chat-completions API
 - Text-to-speech playback for assistant responses
+- Optional typed text input + send button
 - Local chat history persistence with Room
-- Clean architecture starter (UI + data + domain)
+- Hilt-based dependency injection setup
 - GitHub Actions workflow to build APK artifacts
 
 ## Configuration
@@ -41,9 +43,9 @@ Workflow file: `.github/workflows/android.yml`
 - On tags like `v1.0.0`, also builds and uploads release APK
 - Uses `gradle` directly to avoid binary wrapper file issues in restricted PR systems
 
-## Next expansion phases
+## Suggested next steps
 
-1. Streaming responses for more human-like latency
-2. Wake-word support (on-device trigger)
-3. Tool integration (email, WhatsApp Business API, social APIs)
-4. Approval workflow for high-risk business actions
+1. Add unit/instrumentation tests for ViewModel, repository, and UI
+2. Add streaming responses for lower perceived latency
+3. Move API calls behind your own backend to avoid shipping API keys in app builds
+4. Add wake-word support and tool integration flows

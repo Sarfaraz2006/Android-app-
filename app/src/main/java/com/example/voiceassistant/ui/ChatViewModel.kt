@@ -28,13 +28,26 @@ class ChatViewModel @Inject constructor(
     }
 
     fun sendMessage(text: String) {
-        if (text.isBlank()) return
+        val cleaned = text.trim()
+        if (cleaned.isBlank()) return
+
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) }
-            runCatching { repository.sendUserMessage(text) }
-                .onFailure {
+            _uiState.update {
+                it.copy(
+                    isLoading = true,
+                    error = null,
+                    inputText = "",
+                    partialTranscript = ""
+                )
+            }
+
+            runCatching { repository.sendUserMessage(cleaned) }
+                .onFailure { throwable ->
                     _uiState.update { state ->
-                        state.copy(isLoading = false, error = it.message ?: "Unknown error")
+                        state.copy(
+                            isLoading = false,
+                            error = throwable.message ?: "Unable to send message"
+                        )
                     }
                 }
                 .onSuccess {
@@ -43,9 +56,26 @@ class ChatViewModel @Inject constructor(
         }
     }
 
+    fun onInputChanged(value: String) {
+        _uiState.update { it.copy(inputText = value) }
+    }
+
+    fun onListeningChanged(isListening: Boolean) {
+        _uiState.update { it.copy(isListening = isListening) }
+    }
+
+    fun onPartialTranscript(text: String) {
+        _uiState.update { it.copy(partialTranscript = text) }
+    }
+
+    fun onSpeechError(message: String) {
+        _uiState.update { it.copy(error = message, isListening = false) }
+    }
+
     fun clearConversation() {
         viewModelScope.launch {
             repository.clearConversation()
+            _uiState.update { it.copy(partialTranscript = "", error = null) }
         }
     }
 
@@ -56,6 +86,8 @@ class ChatViewModel @Inject constructor(
 
 data class ChatUiState(
     val messages: List<ChatMessage> = emptyList(),
+    val inputText: String = "",
+    val partialTranscript: String = "",
     val isLoading: Boolean = false,
     val isListening: Boolean = false,
     val error: String? = null

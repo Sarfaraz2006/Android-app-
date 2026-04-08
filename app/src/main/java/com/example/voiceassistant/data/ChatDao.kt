@@ -10,7 +10,7 @@ interface ChatDao {
     @Query("SELECT * FROM messages ORDER BY createdAt ASC")
     fun observeMessages(): Flow<List<ChatMessageEntity>>
 
-    @Query("SELECT * FROM messages ORDER BY createdAt ASC LIMIT :limit")
+    @Query("SELECT * FROM messages ORDER BY createdAt DESC LIMIT :limit")
     suspend fun getRecentMessages(limit: Int): List<ChatMessageEntity>
 
     @Insert
