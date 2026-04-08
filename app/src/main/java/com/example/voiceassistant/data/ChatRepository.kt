@@ -2,10 +2,12 @@ package com.example.voiceassistant.data
 
 import com.example.voiceassistant.domain.ChatMessage
 import com.example.voiceassistant.domain.Role
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 
 @Singleton
 class ChatRepository @Inject constructor(
@@ -22,12 +24,13 @@ class ChatRepository @Inject constructor(
             }
         }
 
-    suspend fun sendUserMessage(text: String): String {
+    suspend fun sendUserMessage(text: String): String = withContext(Dispatchers.IO) {
         chatDao.insert(ChatMessageEntity(role = "user", text = text))
 
-        val promptMessages = chatDao.getRecentMessages(20).map {
-            MessagePayload(role = it.role, content = it.text)
-        }
+        val promptMessages = chatDao
+            .getRecentMessages(20)
+            .asReversed()
+            .map { MessagePayload(role = it.role, content = it.text) }
 
         val response = assistantApi.chat(
             ChatRequest(
@@ -37,10 +40,15 @@ class ChatRepository @Inject constructor(
         )
 
         val assistantText = response.choices.firstOrNull()?.message?.content
+            ?.trim()
+            ?.ifBlank { null }
             ?: "Sorry, I could not generate a response."
+
         chatDao.insert(ChatMessageEntity(role = "assistant", text = assistantText))
-        return assistantText
+        assistantText
     }
 
-    suspend fun clearConversation() = chatDao.clearAll()
+    suspend fun clearConversation() = withContext(Dispatchers.IO) {
+        chatDao.clearAll()
+    }
 }

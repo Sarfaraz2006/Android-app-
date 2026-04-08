@@ -2,55 +2,68 @@ package com.example.voiceassistant.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.GraphicEq
+import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.voiceassistant.domain.Role
 
 @Composable
 fun ChatScreen(viewModel: ChatViewModel) {
-    val uiState by viewModel.uiState.collectAsState()
-    val context = LocalContext.current
-    val speaker = remember { VoiceSpeaker(context) }
-    var isListening by remember { mutableStateOf(false) }
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = androidx.compose.ui.platform.LocalContext.current
 
-    val recognizer = remember {
+    val speaker = remember(context) {
+        VoiceSpeaker(
+            context = context,
+            onError = viewModel::onSpeechError
+        )
+    }
+
+    val recognizer = remember(context) {
         VoiceRecognizer(
             context = context,
             onResult = { text -> viewModel.sendMessage(text) },
-            onError = { viewModel.clearError() },
-            onListeningStateChanged = { isListening = it }
+            onPartialResult = viewModel::onPartialTranscript,
+            onError = viewModel::onSpeechError,
+            onListeningStateChanged = viewModel::onListeningChanged
         )
     }
 
     LaunchedEffect(uiState.messages.size) {
         val last = uiState.messages.lastOrNull()
-        if (last?.role == Role.ASSISTANT) {
-            speaker.speak(last.text)
-        }
+        if (last?.role == Role.ASSISTANT) speaker.speak(last.text)
     }
 
     DisposableEffect(Unit) {
@@ -63,26 +76,44 @@ fun ChatScreen(viewModel: ChatViewModel) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surface)
             .padding(16.dp)
     ) {
-        Text(
-            text = "Voice Assistant",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold
-        )
+        ElevatedCard(
+            colors = CardDefaults.elevatedCardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant
+            ),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = "Voice Assistant",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = if (uiState.isListening) "Listening…" else "Tap the mic or type a message",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
+        }
 
-        if (isListening) {
+        uiState.partialTranscript.takeIf { it.isNotBlank() }?.let {
             Text(
-                text = "Listening...",
+                text = "Heard: $it",
                 color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(top = 8.dp)
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(top = 10.dp)
             )
         }
 
         uiState.error?.let {
             Text(
                 text = it,
-                color = Color.Red,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(top = 8.dp)
             )
         }
@@ -92,49 +123,102 @@ fun ChatScreen(viewModel: ChatViewModel) {
                 .weight(1f)
                 .fillMaxWidth()
                 .padding(vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             items(uiState.messages) { message ->
                 val isUser = message.role == Role.USER
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color.Transparent)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start
                 ) {
-                    Text(
-                        text = message.text,
-                        modifier = Modifier.padding(12.dp),
-                        color = if (isUser) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                    )
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (isUser) {
+                                MaterialTheme.colorScheme.primaryContainer
+                            } else {
+                                MaterialTheme.colorScheme.secondaryContainer
+                            }
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth(0.85f)
+                            .clip(RoundedCornerShape(16.dp))
+                    ) {
+                        Text(
+                            text = message.text,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = if (isUser) {
+                                MaterialTheme.colorScheme.onPrimaryContainer
+                            } else {
+                                MaterialTheme.colorScheme.onSecondaryContainer
+                            },
+                            modifier = Modifier.padding(12.dp)
+                        )
+                    }
                 }
             }
         }
 
         if (uiState.isLoading) {
-            CircularProgressIndicator(modifier = Modifier.padding(bottom = 8.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 8.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
         }
 
+        OutlinedTextField(
+            value = uiState.inputText,
+            onValueChange = viewModel::onInputChanged,
+            label = { Text("Type a message") },
+            singleLine = false,
+            maxLines = 3,
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 56.dp)
+        )
+
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Button(
+            FilledTonalIconButton(
                 onClick = {
-                    if (isListening) recognizer.stopListening() else recognizer.startListening()
+                    if (uiState.isListening) {
+                        recognizer.stopListening()
+                    } else {
+                        viewModel.clearError()
+                        recognizer.startListening()
+                    }
                 },
                 modifier = Modifier.weight(1f)
             ) {
-                Text(if (isListening) "Stop" else "Talk")
+                Icon(
+                    imageVector = Icons.Default.GraphicEq,
+                    contentDescription = if (uiState.isListening) "Stop listening" else "Start listening",
+                    tint = if (uiState.isListening) MaterialTheme.colorScheme.error else Color.Unspecified
+                )
             }
 
-            OutlinedButton(
+            FilledTonalIconButton(
+                onClick = { viewModel.sendMessage(uiState.inputText) },
+                modifier = Modifier.weight(1f)
+            ) {
+                Icon(imageVector = Icons.Default.Send, contentDescription = "Send")
+            }
+
+            FilledTonalIconButton(
                 onClick = {
                     speaker.stop()
                     viewModel.clearConversation()
                 },
                 modifier = Modifier.weight(1f)
             ) {
-                Text("Clear")
+                Icon(imageVector = Icons.Default.DeleteOutline, contentDescription = "Clear chat")
             }
         }
     }
