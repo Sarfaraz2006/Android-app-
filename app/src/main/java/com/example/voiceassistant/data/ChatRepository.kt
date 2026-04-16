@@ -2,15 +2,16 @@ package com.example.voiceassistant.data
 
 import com.example.voiceassistant.domain.ChatMessage
 import com.example.voiceassistant.domain.Role
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 
 @Singleton
 class ChatRepository @Inject constructor(
     private val chatDao: ChatDao,
-    private val assistantApi: AssistantApi
+    private val assistantApi: AssistantApi,
+    private val settingsRepository: SettingsRepository
 ) {
     fun observeMessages(): Flow<List<ChatMessage>> =
         chatDao.observeMessages().map { list ->
@@ -23,21 +24,29 @@ class ChatRepository @Inject constructor(
         }
 
     suspend fun sendUserMessage(text: String): String {
-        chatDao.insert(ChatMessageEntity(role = "user", text = text))
-
-        val promptMessages = chatDao.getRecentMessages(20).map {
-            MessagePayload(role = it.role, content = it.text)
+        val settings = settingsRepository.currentSettings()
+        if (settings.apiKey.isBlank()) {
+            throw IllegalStateException("Please add your API key in Settings.")
         }
 
-        val response = assistantApi.chat(
-            ChatRequest(
-                model = "gpt-4o-mini",
-                messages = promptMessages
+        chatDao.insert(ChatMessageEntity(role = "user", text = text))
+
+        val promptMessages = buildList {
+            if (settings.systemPrompt.isNotBlank()) {
+                add(MessagePayload(role = "system", content = settings.systemPrompt))
+            }
+            addAll(
+                chatDao.getRecentMessages(20).map {
+                    MessagePayload(role = it.role, content = it.text)
+                }
             )
+        }
+
+        val assistantText = assistantApi.chat(
+            settings = settings,
+            messages = promptMessages
         )
 
-        val assistantText = response.choices.firstOrNull()?.message?.content
-            ?: "Sorry, I could not generate a response."
         chatDao.insert(ChatMessageEntity(role = "assistant", text = assistantText))
         return assistantText
     }
