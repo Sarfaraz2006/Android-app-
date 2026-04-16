@@ -1,49 +1,55 @@
-# Voice Assistant Android App
+# Aria Android App (Native Kotlin)
 
-This repository now contains a native Android starter app focused on the first milestone: **a conversational voice assistant**.
+This repo now contains a **native Android (Jetpack Compose + Kotlin)** AI assistant app named **Aria**.
 
-## What is implemented
+## What this app includes
 
-- Push-to-talk voice input (Android SpeechRecognizer)
-- AI response generation via chat-completions API
-- Text-to-speech playback for assistant responses
-- Local chat history persistence with Room
-- Clean architecture starter (UI + data + domain)
-- GitHub Actions workflow to build APK artifacts
+- ChatGPT-style conversational UI
+- Text input + voice input (speech-to-text)
+- Spoken replies (text-to-speech)
+- Local chat history persistence (Room)
+- In-app **Settings** screen to configure your own provider:
+  - Assistant name
+  - Base URL
+  - Endpoint path
+  - Model name
+  - API key
+  - Temperature
+  - System prompt
+- Works with **OpenAI-compatible chat completion APIs** (OpenAI, OpenRouter, Groq-compatible gateways, Together-compatible endpoints, self-hosted proxies, etc.)
 
-## Configuration
-
-Create `~/.gradle/gradle.properties` (or project `gradle.properties`) with:
-
-```properties
-API_BASE_URL=https://api.openai.com/
-API_KEY=your_api_key_here
-```
-
-If `API_KEY` is blank, requests will fail until configured.
-
-## Run locally
+## Build debug APK locally
 
 ```bash
 gradle assembleDebug
 ```
 
-APK output:
+Output:
 
 `app/build/outputs/apk/debug/app-debug.apk`
 
+## Build release APK locally
+
+```bash
+gradle assembleRelease
+```
+
+Output:
+
+`app/build/outputs/apk/release/app-release.apk`
+
 ## GitHub Actions
 
-Workflow file: `.github/workflows/android.yml`
+Workflow: `.github/workflows/android.yml`
 
-- Builds debug APK on push/PR
-- Uploads debug APK as artifact
-- On tags like `v1.0.0`, also builds and uploads release APK
-- Uses `gradle` directly to avoid binary wrapper file issues in restricted PR systems
+- Builds debug APK on push / PR
+- Uploads APK artifact
+- On tags like `v1.0.0`, builds + uploads release APK artifact
 
-## Next expansion phases
+## Notes
 
-1. Streaming responses for more human-like latency
-2. Wake-word support (on-device trigger)
-3. Tool integration (email, WhatsApp Business API, social APIs)
-4. Approval workflow for high-risk business actions
+- Add API credentials from app Settings before first chat.
+- This client expects an OpenAI-compatible JSON response schema for chat completions.
+
+
+> Note: This repository currently does not include `gradle-wrapper.jar`, so use `gradle` in CI/local until wrapper is restored.

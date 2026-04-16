@@ -2,7 +2,9 @@ package com.example.voiceassistant.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.voiceassistant.data.AppSettings
 import com.example.voiceassistant.data.ChatRepository
+import com.example.voiceassistant.data.SettingsRepository
 import com.example.voiceassistant.domain.ChatMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -14,7 +16,8 @@ import kotlinx.coroutines.launch
 
 @HiltViewModel
 class ChatViewModel @Inject constructor(
-    private val repository: ChatRepository
+    private val repository: ChatRepository,
+    private val settingsRepository: SettingsRepository
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(ChatUiState())
     val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
@@ -25,13 +28,19 @@ class ChatViewModel @Inject constructor(
                 _uiState.update { it.copy(messages = messages) }
             }
         }
+
+        viewModelScope.launch {
+            settingsRepository.settings.collect { settings ->
+                _uiState.update { it.copy(settings = settings) }
+            }
+        }
     }
 
     fun sendMessage(text: String) {
         if (text.isBlank()) return
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
-            runCatching { repository.sendUserMessage(text) }
+            runCatching { repository.sendUserMessage(text.trim()) }
                 .onFailure {
                     _uiState.update { state ->
                         state.copy(isLoading = false, error = it.message ?: "Unknown error")
@@ -41,6 +50,10 @@ class ChatViewModel @Inject constructor(
                     _uiState.update { state -> state.copy(isLoading = false) }
                 }
         }
+    }
+
+    fun updateSettings(settings: AppSettings) {
+        settingsRepository.updateSettings(settings)
     }
 
     fun clearConversation() {
@@ -57,6 +70,14 @@ class ChatViewModel @Inject constructor(
 data class ChatUiState(
     val messages: List<ChatMessage> = emptyList(),
     val isLoading: Boolean = false,
-    val isListening: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val settings: AppSettings = AppSettings(
+        assistantName = "Aria",
+        baseUrl = "https://api.openai.com",
+        endpointPath = "v1/chat/completions",
+        model = "gpt-4.1-mini",
+        apiKey = "",
+        temperature = 0.7f,
+        systemPrompt = "You are Aria, a helpful, concise, and friendly personal assistant."
+    )
 )

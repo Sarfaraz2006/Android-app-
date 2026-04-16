@@ -2,7 +2,7 @@ name: Android CI + APK
 
 on:
   push:
-    branches: ["work"]
+    branches: ["**"]
     tags: ["v*"]
   pull_request:
 
