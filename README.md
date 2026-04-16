@@ -16,7 +16,7 @@ This repo now contains a **native Android (Jetpack Compose + Kotlin)** AI assist
   - API key
   - Temperature
   - System prompt
-- Works with **OpenAI-compatible chat completion APIs** (OpenAI, OpenRouter, Groq-compatible gateways, Together-compatible endpoints, self-hosted proxies, etc.)
+- Works with multiple providers: **OpenAI/OpenRouter-compatible**, **Anthropic Claude**, and **Google Gemini** via provider-specific payload handling.
 
 ## Build debug APK locally
 

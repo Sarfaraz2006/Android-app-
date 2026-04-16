@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.voiceassistant.data.AppSettings
 import com.example.voiceassistant.data.ChatRepository
 import com.example.voiceassistant.data.SettingsRepository
+import com.example.voiceassistant.data.ProviderType
 import com.example.voiceassistant.domain.ChatMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -73,9 +74,10 @@ data class ChatUiState(
     val error: String? = null,
     val settings: AppSettings = AppSettings(
         assistantName = "Aria",
-        baseUrl = "https://api.openai.com",
-        endpointPath = "v1/chat/completions",
-        model = "gpt-4.1-mini",
+        providerType = ProviderType.OPENAI_COMPATIBLE,
+        baseUrl = "https://openrouter.ai",
+        endpointPath = "api/v1/chat/completions",
+        model = "openai/gpt-4.1-mini",
         apiKey = "",
         temperature = 0.7f,
         systemPrompt = "You are Aria, a helpful, concise, and friendly personal assistant."
