@@ -193,9 +193,9 @@ fun ChatScreen(viewModel: ChatViewModel) {
                 }
 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FeatureCard("Generate")
-                    FeatureCard("Create")
-                    FeatureCard("Summarize")
+                    FeatureCard("Generate", modifier = Modifier.weight(1f))
+                    FeatureCard("Create", modifier = Modifier.weight(1f))
+                    FeatureCard("Summarize", modifier = Modifier.weight(1f))
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -288,9 +288,9 @@ private fun AnimatedOrbHeader() {
 }
 
 @Composable
-private fun FeatureCard(title: String) {
+private fun FeatureCard(title: String, modifier: Modifier = Modifier) {
     Surface(
-        modifier = Modifier.weight(1f),
+        modifier = modifier,
         shape = RoundedCornerShape(12.dp),
         color = Color.White.copy(alpha = 0.08f)
     ) {
