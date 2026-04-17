@@ -28,10 +28,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -54,6 +54,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.example.voiceassistant.BuildConfig
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -155,6 +156,12 @@ fun ChatScreen(viewModel: ChatViewModel) {
         ) {
             Column {
                 AnimatedOrbHeader()
+                Text(
+                    text = "Provider: ${uiState.settings.providerType.label} • v${BuildConfig.VERSION_NAME}",
+                    color = Color.White.copy(alpha = 0.72f),
+                    style = MaterialTheme.typography.labelMedium,
+                    modifier = Modifier.padding(top = 6.dp, bottom = 4.dp)
+                )
 
                 uiState.error?.let {
                     Text(text = it, color = Color(0xFFFF8AAE), modifier = Modifier.padding(top = 8.dp))
@@ -329,6 +336,21 @@ private fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Text("Choose provider (OpenRouter recommended for testing)")
+
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                AssistChip(
+                    onClick = { local = presetFor(ProviderType.OPENAI_COMPATIBLE).copy(apiKey = local.apiKey) },
+                    label = { Text("Use OpenRouter") }
+                )
+                AssistChip(
+                    onClick = { local = presetFor(ProviderType.GOOGLE_GEMINI).copy(apiKey = local.apiKey) },
+                    label = { Text("Use Gemini") }
+                )
+                AssistChip(
+                    onClick = { local = presetFor(ProviderType.ANTHROPIC).copy(apiKey = local.apiKey) },
+                    label = { Text("Use Claude") }
+                )
+            }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 ProviderType.entries.forEach { provider ->
