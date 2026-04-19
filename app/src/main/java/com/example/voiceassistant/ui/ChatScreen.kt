@@ -29,6 +29,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -159,13 +160,28 @@ fun ChatScreen(viewModel: ChatViewModel) {
                     modifier = Modifier.padding(top = 4.dp)
                 )
 
+                if (uiState.messages.isEmpty()) {
+                    QuickPromptRow(
+                        onPromptClick = { prompt ->
+                            inputText = prompt
+                        }
+                    )
+                }
+
                 uiState.error?.let {
                     Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF5B1E2D))) {
-                        Text(
-                            text = it,
-                            color = Color.White,
-                            modifier = Modifier.padding(12.dp)
-                        )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(text = it, color = Color.White, modifier = Modifier.weight(1f))
+                            TextButton(onClick = { viewModel.clearError() }) {
+                                Text("Dismiss", color = Color.White)
+                            }
+                        }
                     }
                 }
 
@@ -244,6 +260,19 @@ fun ChatScreen(viewModel: ChatViewModel) {
                 }
             }
         }
+    }
+}
+
+
+@Composable
+private fun QuickPromptRow(onPromptClick: (String) -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        AssistChip(onClick = { onPromptClick("Give me today\'s productivity plan") }, label = { Text("Plan") })
+        AssistChip(onClick = { onPromptClick("Summarize my task list") }, label = { Text("Summarize") })
+        AssistChip(onClick = { onPromptClick("Motivate me in 2 lines") }, label = { Text("Motivate") })
     }
 }
 

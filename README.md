@@ -21,7 +21,7 @@ gradle assembleDebug
 
 Output:
 
-`app/build/outputs/apk/debug/app-debug.apk`
+`app/build/outputs/apk/debug/app-debug.apk` (CI also publishes unique filename artifacts: `aria-studio-debug-<run_number>.apk`)
 
 ## Build release APK locally
 
@@ -38,7 +38,7 @@ Output:
 Workflow: `.github/workflows/android.yml`
 
 - Builds debug APK on push / PR
-- Uploads APK artifact
+- Uploads uniquely named APK artifact per run
 - On tags like `v1.0.0`, builds + uploads release APK artifact
 
 ## Notes
