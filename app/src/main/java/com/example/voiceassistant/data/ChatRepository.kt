@@ -26,26 +26,17 @@ class ChatRepository @Inject constructor(
     suspend fun sendUserMessage(text: String): String {
         val settings = settingsRepository.currentSettings()
         if (settings.apiKey.isBlank()) {
-            throw IllegalStateException("Please add your API key in Settings.")
+            throw IllegalStateException("Please add your OpenRouter API key in Settings.")
         }
 
         chatDao.insert(ChatMessageEntity(role = "user", text = text))
 
-        val promptMessages = buildList {
-            if (settings.systemPrompt.isNotBlank()) {
-                add(MessagePayload(role = "system", content = settings.systemPrompt))
-            }
-            addAll(
-                chatDao.getRecentMessages(20).map {
-                    MessagePayload(role = it.role, content = it.text)
-                }
-            )
+        val promptMessages = chatDao.getRecentMessages(20).map {
+            MessagePayload(role = it.role, content = it.text)
         }
 
-        val assistantText = assistantApi.chat(
-            settings = settings,
-            messages = promptMessages
-        )
+        val assistantText = assistantApi.chat(settings = settings, messages = promptMessages)
+            .ifBlank { "I could not generate a response. Please try again." }
 
         chatDao.insert(ChatMessageEntity(role = "assistant", text = assistantText))
         return assistantText

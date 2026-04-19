@@ -8,15 +8,10 @@ This repo now contains a **native Android (Jetpack Compose + Kotlin)** AI assist
 - Text input + voice input (speech-to-text)
 - Spoken replies (text-to-speech)
 - Local chat history persistence (Room)
-- In-app **Settings** screen to configure your own provider:
-  - Assistant name
-  - Base URL
-  - Endpoint path
-  - Model name
+- In-app **Settings** screen with only required fields:
   - API key
-  - Temperature
-  - System prompt
-- Works with multiple providers: **OpenAI/OpenRouter-compatible**, **Anthropic Claude**, and **Google Gemini** via provider-specific payload handling.
+  - Model dropdown
+- Uses **OpenRouter chat-completions** with fixed endpoint + configurable API key/model.
 
 ## Build debug APK locally
 
@@ -48,8 +43,8 @@ Workflow: `.github/workflows/android.yml`
 
 ## Notes
 
-- Add API credentials from app Settings before first chat.
-- This client expects an OpenAI-compatible JSON response schema for chat completions.
+- Add your OpenRouter API key from app Settings before first chat.
+- Endpoint is fixed to `https://openrouter.ai/api/v1/chat/completions` for stable behavior.
 
 
 > Note: This repository currently does not include `gradle-wrapper.jar`, so use `gradle` in CI/local until wrapper is restored.
