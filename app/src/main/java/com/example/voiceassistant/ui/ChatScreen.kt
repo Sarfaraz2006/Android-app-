@@ -4,14 +4,21 @@ import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -20,16 +27,16 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -52,6 +59,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -130,7 +138,7 @@ fun ChatScreen(viewModel: ChatViewModel) {
         contentWindowInsets = WindowInsets.safeDrawing,
         topBar = {
             TopAppBar(
-                title = { Text("Aria Studio") },
+                title = { Text("Elix") },
                 actions = {
                     IconButton(onClick = { showSettings = true }) {
                         Icon(Icons.Default.Settings, contentDescription = "Settings")
@@ -142,7 +150,7 @@ fun ChatScreen(viewModel: ChatViewModel) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Brush.verticalGradient(listOf(Color(0xFF101426), Color(0xFF1B2244))))
+                .background(Brush.verticalGradient(listOf(Color(0xFF000000), Color(0xFF060A18), Color(0xFF0D1530))))
                 .padding(padding)
                 .navigationBarsPadding()
                 .imePadding()
@@ -161,11 +169,7 @@ fun ChatScreen(viewModel: ChatViewModel) {
                 )
 
                 if (uiState.messages.isEmpty()) {
-                    QuickPromptRow(
-                        onPromptClick = { prompt ->
-                            inputText = prompt
-                        }
-                    )
+                    QuickPromptRow(onPromptClick = { prompt -> inputText = prompt })
                 }
 
                 uiState.error?.let {
@@ -190,6 +194,7 @@ fun ChatScreen(viewModel: ChatViewModel) {
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth(),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     itemsIndexed(uiState.messages) { _, message ->
@@ -202,7 +207,7 @@ fun ChatScreen(viewModel: ChatViewModel) {
                                 modifier = Modifier.fillMaxWidth(0.86f),
                                 shape = RoundedCornerShape(14.dp),
                                 colors = CardDefaults.cardColors(
-                                    containerColor = if (isUser) Color(0xFF2F4DB8) else Color(0xFF273056)
+                                    containerColor = if (isUser) Color(0xFF3A57D8) else Color(0xFF2A2F3C)
                                 )
                             ) {
                                 Text(
@@ -216,7 +221,7 @@ fun ChatScreen(viewModel: ChatViewModel) {
                 }
 
                 if (uiState.isLoading) {
-                    CircularProgressIndicator(modifier = Modifier.size(22.dp), strokeWidth = 2.dp)
+                    TypingIndicator()
                 }
 
                 Row(
@@ -263,6 +268,35 @@ fun ChatScreen(viewModel: ChatViewModel) {
     }
 }
 
+@Composable
+private fun TypingIndicator() {
+    val transition = rememberInfiniteTransition(label = "typing")
+    val a1 by transition.animateFloat(0.2f, 1f, animationSpec = infiniteRepeatable(tween(500), RepeatMode.Reverse), label = "a1")
+    val a2 by transition.animateFloat(0.2f, 1f, animationSpec = infiniteRepeatable(tween(500, delayMillis = 140), RepeatMode.Reverse), label = "a2")
+    val a3 by transition.animateFloat(0.2f, 1f, animationSpec = infiniteRepeatable(tween(500, delayMillis = 280), RepeatMode.Reverse), label = "a3")
+
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(start = 6.dp)
+    ) {
+        Dot(alpha = a1)
+        Dot(alpha = a2)
+        Dot(alpha = a3)
+        Spacer(modifier = Modifier.height(1.dp))
+        Text("Elix is thinking…", style = MaterialTheme.typography.labelSmall, color = Color(0xFFAFC2FF))
+    }
+}
+
+@Composable
+private fun Dot(alpha: Float) {
+    Box(
+        modifier = Modifier
+            .size(8.dp)
+            .alpha(alpha)
+            .background(Color(0xFFAFC2FF), CircleShape)
+    )
+}
 
 @Composable
 private fun QuickPromptRow(onPromptClick: (String) -> Unit) {
@@ -270,7 +304,7 @@ private fun QuickPromptRow(onPromptClick: (String) -> Unit) {
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        AssistChip(onClick = { onPromptClick("Give me today\'s productivity plan") }, label = { Text("Plan") })
+        AssistChip(onClick = { onPromptClick("Give me today’s productivity plan") }, label = { Text("Plan") })
         AssistChip(onClick = { onPromptClick("Summarize my task list") }, label = { Text("Summarize") })
         AssistChip(onClick = { onPromptClick("Motivate me in 2 lines") }, label = { Text("Motivate") })
     }
