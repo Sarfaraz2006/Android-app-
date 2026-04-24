@@ -48,9 +48,8 @@ data class AppSettings(
 )
 
 val OPENROUTER_MODELS = listOf(
-    "google/gemma-3n-e4b-it:free",
-    "google/gemma-3-27b-it:free",
-    "meta-llama/llama-3.3-8b-instruct:free",
-    "mistralai/mistral-small-3.1-24b-instruct:free",
-    "deepseek/deepseek-r1:free"
+    "meta-llama/llama-3.1-70b-instruct",
+    "google/gemini-flash-1.5",
+    "anthropic/claude-3-haiku",
+    "mistralai/mistral-7b-instruct"
 )

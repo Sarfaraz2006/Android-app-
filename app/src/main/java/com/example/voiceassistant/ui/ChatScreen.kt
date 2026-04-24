@@ -173,7 +173,14 @@ fun ChatScreen(viewModel: ChatViewModel) {
                 )
 
                 if (uiState.messages.isEmpty()) {
-                    QuickPromptRow(onPromptClick = { prompt -> inputText = prompt })
+                    QuickPromptRow(
+                        onPromptSend = { prompt ->
+                            viewModel.sendMessage(prompt)
+                        },
+                        onPromptFill = { prompt ->
+                            inputText = prompt
+                        }
+                    )
                 }
 
                 uiState.error?.let {
@@ -303,14 +310,36 @@ private fun Dot(alpha: Float) {
 }
 
 @Composable
-private fun QuickPromptRow(onPromptClick: (String) -> Unit) {
+private fun QuickPromptRow(
+    onPromptSend: (String) -> Unit,
+    onPromptFill: (String) -> Unit
+) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        AssistChip(onClick = { onPromptClick("Give me today’s productivity plan") }, label = { Text("Plan") })
-        AssistChip(onClick = { onPromptClick("Summarize my task list") }, label = { Text("Summarize") })
-        AssistChip(onClick = { onPromptClick("Motivate me in 2 lines") }, label = { Text("Motivate") })
+        AssistChip(
+            onClick = {
+                onPromptSend(
+                    "Mere liye aaj ka practical day plan banao: top 3 priorities, time blocks, and one quick win."
+                )
+            },
+            label = { Text("Plan") }
+        )
+        AssistChip(
+            onClick = {
+                onPromptFill("Is text ko concise summary me convert karo with bullets and key takeaways:")
+            },
+            label = { Text("Summarize") }
+        )
+        AssistChip(
+            onClick = {
+                onPromptSend(
+                    "Mujhe short motivation do: 3 lines, confident tone, and one immediate action step."
+                )
+            },
+            label = { Text("Motivate") }
+        )
     }
 }
 
