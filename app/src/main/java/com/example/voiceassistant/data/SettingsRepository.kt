@@ -48,9 +48,9 @@ data class AppSettings(
 )
 
 val OPENROUTER_MODELS = listOf(
-    "openai/gpt-4o-mini",
-    "openai/gpt-4.1-mini",
-    "anthropic/claude-3.5-sonnet",
-    "google/gemini-2.0-flash-001",
-    "meta-llama/llama-3.1-70b-instruct"
+    "google/gemma-3n-e4b-it:free",
+    "google/gemma-3-27b-it:free",
+    "meta-llama/llama-3.3-8b-instruct:free",
+    "mistralai/mistral-small-3.1-24b-instruct:free",
+    "deepseek/deepseek-r1:free"
 )

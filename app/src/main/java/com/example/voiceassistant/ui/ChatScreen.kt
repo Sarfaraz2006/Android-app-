@@ -2,6 +2,7 @@ package com.example.voiceassistant.ui
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.RepeatMode
@@ -67,7 +68,6 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.example.voiceassistant.data.AppSettings
-import com.example.voiceassistant.data.OPENROUTER_MODELS
 import com.example.voiceassistant.domain.Role
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -125,9 +125,13 @@ fun ChatScreen(viewModel: ChatViewModel) {
     if (showSettings) {
         SettingsScreen(
             current = uiState.settings,
+            models = uiState.availableModels,
+            isLoadingModels = uiState.isLoadingModels,
+            onRefreshModels = { viewModel.refreshFreeModels() },
             onBack = { showSettings = false },
             onSave = {
                 viewModel.updateSettings(it)
+                Toast.makeText(context, "Settings saved", Toast.LENGTH_SHORT).show()
                 showSettings = false
             }
         )
@@ -314,6 +318,9 @@ private fun QuickPromptRow(onPromptClick: (String) -> Unit) {
 @Composable
 private fun SettingsScreen(
     current: AppSettings,
+    models: List<String>,
+    isLoadingModels: Boolean,
+    onRefreshModels: () -> Unit,
     onBack: () -> Unit,
     onSave: (AppSettings) -> Unit
 ) {
@@ -362,6 +369,17 @@ private fun SettingsScreen(
                             modifier = Modifier.fillMaxWidth()
                         )
 
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("Free OpenRouter models", style = MaterialTheme.typography.labelLarge)
+                            TextButton(onClick = onRefreshModels) {
+                                Text(if (isLoadingModels) "Loading..." else "Refresh")
+                            }
+                        }
+
                         ExposedDropdownMenuBox(
                             expanded = expanded,
                             onExpandedChange = { expanded = !expanded }
@@ -383,7 +401,7 @@ private fun SettingsScreen(
                                 expanded = expanded,
                                 onDismissRequest = { expanded = false }
                             ) {
-                                OPENROUTER_MODELS.forEach { model ->
+                                models.forEach { model ->
                                     DropdownMenuItem(
                                         text = { Text(model) },
                                         onClick = {
