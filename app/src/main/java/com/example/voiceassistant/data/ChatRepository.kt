@@ -35,8 +35,22 @@ class ChatRepository @Inject constructor(
             MessagePayload(role = it.role, content = it.text)
         }
 
-        val assistantText = assistantApi.chat(settings = settings, messages = promptMessages)
-            .ifBlank { "I could not generate a response. Please try again." }
+        val assistantText = runCatching {
+            assistantApi.chat(settings = settings, messages = promptMessages)
+        }.recoverCatching { err ->
+            if (err is OpenRouterException && err.isRateLimited) {
+                val fallbackModel = OPENROUTER_MODELS.firstOrNull { it != settings.model }
+                    ?: throw err
+                val fallbackSettings = settings.copy(model = fallbackModel)
+                val fallbackResponse = assistantApi.chat(settings = fallbackSettings, messages = promptMessages)
+                settingsRepository.updateSettings(fallbackSettings)
+                "(Auto-switched to another free model)\n$fallbackResponse"
+            } else {
+                throw err
+            }
+        }.getOrElse {
+            throw it
+        }.ifBlank { "I could not generate a response. Please try again." }
 
         chatDao.insert(ChatMessageEntity(role = "assistant", text = assistantText))
         return assistantText

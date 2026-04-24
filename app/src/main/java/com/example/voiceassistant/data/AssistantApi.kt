@@ -44,12 +44,40 @@ class AssistantApi @Inject constructor(
         val raw = response.body?.string().orEmpty()
 
         if (!response.isSuccessful) {
-            throw IllegalStateException("OpenRouter error ${response.code}: ${raw.ifBlank { "Unknown error" }}")
+            throw toOpenRouterException(response.code, raw, settings.model)
         }
 
         val text = parseText(raw)
-        if (text.isBlank()) throw IllegalStateException("Empty response from OpenRouter")
+        if (text.isBlank()) throw OpenRouterException(
+            code = 500,
+            message = "Empty response from OpenRouter",
+            isRateLimited = false
+        )
         text
+    }
+
+    private fun toOpenRouterException(code: Int, raw: String, model: String): OpenRouterException {
+        val parsed = runCatching {
+            val root = JSONObject(raw)
+            val error = root.optJSONObject("error")
+            val message = error?.optString("message").orEmpty()
+            val providerRaw = error?.optJSONObject("metadata")?.optString("raw").orEmpty()
+            val combined = listOf(message, providerRaw).filter { it.isNotBlank() }.joinToString(" | ")
+            combined.ifBlank { raw }
+        }.getOrDefault(raw)
+
+        val isRateLimited = code == 429 || parsed.contains("rate-limit", ignoreCase = true)
+        val userMessage = if (isRateLimited) {
+            "Model '$model' abhi rate-limited hai. Please 1-2 minute baad retry karo ya settings me dusra free model select karo."
+        } else {
+            "Request failed (${code}). Please try again."
+        }
+
+        return OpenRouterException(
+            code = code,
+            message = userMessage,
+            isRateLimited = isRateLimited
+        )
     }
 
     private fun parseText(raw: String): String {
@@ -68,6 +96,12 @@ class AssistantApi @Inject constructor(
         private const val OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
     }
 }
+
+class OpenRouterException(
+    val code: Int,
+    override val message: String,
+    val isRateLimited: Boolean
+) : IllegalStateException(message)
 
 data class MessagePayload(
     val role: String,
