@@ -31,8 +31,13 @@ class ChatRepository @Inject constructor(
 
         chatDao.insert(ChatMessageEntity(role = "user", text = text))
 
-        val promptMessages = chatDao.getRecentMessages(20).map {
-            MessagePayload(role = it.role, content = it.text)
+        val promptMessages = buildList {
+            add(MessagePayload(role = "system", content = ELIX_SYSTEM_PROMPT))
+            addAll(
+                chatDao.getRecentMessages(20).map {
+                    MessagePayload(role = it.role, content = it.text)
+                }
+            )
         }
 
         val assistantText = runCatching {
@@ -44,7 +49,7 @@ class ChatRepository @Inject constructor(
                 val fallbackSettings = settings.copy(model = fallbackModel)
                 val fallbackResponse = assistantApi.chat(settings = fallbackSettings, messages = promptMessages)
                 settingsRepository.updateSettings(fallbackSettings)
-                "(Auto-switched to another free model)\n$fallbackResponse"
+                fallbackResponse
             } else {
                 throw err
             }
@@ -57,4 +62,11 @@ class ChatRepository @Inject constructor(
     }
 
     suspend fun clearConversation() = chatDao.clearAll()
+
+    companion object {
+        private const val ELIX_SYSTEM_PROMPT =
+            "You are Elix, a calm and helpful personal assistant. Be concise, natural, and friendly. " +
+                "Do not mention model names, OpenRouter, or that you are an AI model. " +
+                "Never say you are Bard/Google AI/LLM. Respond like a reliable assistant companion."
+    }
 }
