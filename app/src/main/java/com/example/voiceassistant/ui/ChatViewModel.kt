@@ -92,7 +92,9 @@ data class ChatUiState(
     val error: String? = null,
     val settings: AppSettings = AppSettings(
         apiKey = "",
-        model = SettingsRepository.DEFAULT_MODEL
+        model = SettingsRepository.DEFAULT_MODEL,
+        userName = "",
+        preferredLanguage = SettingsRepository.DEFAULT_LANGUAGE
     ),
     val availableModels: List<String> = OPENROUTER_MODELS
 )

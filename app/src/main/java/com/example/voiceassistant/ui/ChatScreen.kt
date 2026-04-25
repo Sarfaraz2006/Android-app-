@@ -30,6 +30,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -68,6 +69,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.example.voiceassistant.data.AppSettings
+import com.example.voiceassistant.data.SUPPORTED_LANGUAGES
 import com.example.voiceassistant.domain.Role
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -77,6 +79,7 @@ fun ChatScreen(viewModel: ChatViewModel) {
     var inputText by remember { mutableStateOf("") }
     var isListening by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
+    var showProfileOnboarding by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val listState = rememberLazyListState()
@@ -97,6 +100,11 @@ fun ChatScreen(viewModel: ChatViewModel) {
     }
 
     val speaker = remember { VoiceSpeaker(context) }
+
+    LaunchedEffect(uiState.settings.userName, uiState.settings.preferredLanguage) {
+        showProfileOnboarding = uiState.settings.userName.isBlank()
+    }
+
     val recognizer = remember {
         VoiceRecognizer(
             context = context,
@@ -120,6 +128,17 @@ fun ChatScreen(viewModel: ChatViewModel) {
             recognizer.release()
             speaker.release()
         }
+    }
+
+    if (showProfileOnboarding) {
+        ProfileOnboardingDialog(
+            current = uiState.settings,
+            onSave = {
+                viewModel.updateSettings(it)
+                Toast.makeText(context, "Profile saved", Toast.LENGTH_SHORT).show()
+                showProfileOnboarding = false
+            }
+        )
     }
 
     if (showSettings) {
@@ -343,6 +362,63 @@ private fun QuickPromptRow(
     }
 }
 
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ProfileOnboardingDialog(
+    current: AppSettings,
+    onSave: (AppSettings) -> Unit
+) {
+    var name by remember { mutableStateOf(current.userName) }
+    var language by remember { mutableStateOf(current.preferredLanguage.ifBlank { SUPPORTED_LANGUAGES.first() }) }
+    var expanded by remember { mutableStateOf(false) }
+
+    AlertDialog(
+        onDismissRequest = {},
+        title = { Text("Welcome to Elix") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("Tell Elix your name and preferred language.")
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Your name") },
+                    singleLine = true
+                )
+
+                ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }) {
+                    OutlinedTextField(
+                        value = language,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Preferred language") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                        modifier = Modifier.menuAnchor().fillMaxWidth()
+                    )
+                    ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                        SUPPORTED_LANGUAGES.forEach { option ->
+                            DropdownMenuItem(
+                                text = { Text(option) },
+                                onClick = {
+                                    language = option
+                                    expanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = {
+                onSave(current.copy(userName = name.trim(), preferredLanguage = language))
+            }, enabled = name.isNotBlank()) {
+                Text("Continue")
+            }
+        }
+    )
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SettingsScreen(
@@ -365,7 +441,14 @@ private fun SettingsScreen(
                 navigationIcon = { TextButton(onClick = onBack) { Text("Back") } },
                 actions = {
                     Button(
-                        onClick = { onSave(AppSettings(apiKey = apiKey.trim(), model = selectedModel)) }
+                        onClick = {
+                            onSave(
+                                current.copy(
+                                    apiKey = apiKey.trim(),
+                                    model = selectedModel
+                                )
+                            )
+                        }
                     ) { Text("Save") }
                 }
             )

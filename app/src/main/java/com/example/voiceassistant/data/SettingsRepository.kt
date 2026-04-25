@@ -24,27 +24,36 @@ class SettingsRepository @Inject constructor(
         prefs.edit()
             .putString(KEY_API_KEY, updated.apiKey)
             .putString(KEY_MODEL, updated.model)
+            .putString(KEY_USER_NAME, updated.userName)
+            .putString(KEY_LANGUAGE, updated.preferredLanguage)
             .apply()
         _settings.update { updated }
     }
 
     private fun readFromPrefs(): AppSettings = AppSettings(
         apiKey = prefs.getString(KEY_API_KEY, "").orEmpty(),
-        model = prefs.getString(KEY_MODEL, DEFAULT_MODEL).orEmpty()
+        model = prefs.getString(KEY_MODEL, DEFAULT_MODEL).orEmpty(),
+        userName = prefs.getString(KEY_USER_NAME, "").orEmpty(),
+        preferredLanguage = prefs.getString(KEY_LANGUAGE, DEFAULT_LANGUAGE).orEmpty()
     )
 
     companion object {
         private const val PREF_NAME = "aria_settings"
         private const val KEY_API_KEY = "api_key"
         private const val KEY_MODEL = "model"
+        private const val KEY_USER_NAME = "user_name"
+        private const val KEY_LANGUAGE = "preferred_language"
 
         const val DEFAULT_MODEL = "openai/gpt-4o-mini"
+        const val DEFAULT_LANGUAGE = "Hinglish"
     }
 }
 
 data class AppSettings(
     val apiKey: String,
-    val model: String
+    val model: String,
+    val userName: String,
+    val preferredLanguage: String
 )
 
 val OPENROUTER_MODELS = listOf(
@@ -53,3 +62,5 @@ val OPENROUTER_MODELS = listOf(
     "anthropic/claude-3-haiku",
     "mistralai/mistral-7b-instruct"
 )
+
+val SUPPORTED_LANGUAGES = listOf("Hinglish", "Hindi", "English")

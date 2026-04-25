@@ -32,7 +32,7 @@ class ChatRepository @Inject constructor(
         chatDao.insert(ChatMessageEntity(role = "user", text = text))
 
         val promptMessages = buildList {
-            add(MessagePayload(role = "system", content = ELIX_SYSTEM_PROMPT))
+            add(MessagePayload(role = "system", content = createSystemPrompt(settings)))
             addAll(
                 chatDao.getRecentMessages(20).map {
                     MessagePayload(role = it.role, content = it.text)
@@ -61,12 +61,22 @@ class ChatRepository @Inject constructor(
         return assistantText
     }
 
-    suspend fun clearConversation() = chatDao.clearAll()
+    private fun createSystemPrompt(settings: AppSettings): String {
+        val nameSection = if (settings.userName.isBlank()) {
+            "Address the user respectfully."
+        } else {
+            "User name is ${settings.userName}. Address them by name naturally."
+        }
 
-    companion object {
-        private const val ELIX_SYSTEM_PROMPT =
-            "You are Elix, a calm and helpful personal assistant. Be concise, natural, and friendly. " +
-                "Do not mention model names, OpenRouter, or that you are an AI model. " +
-                "Never say you are Bard/Google AI/LLM. Respond like a reliable assistant companion."
+        return """
+            You are Elix, a calm and helpful personal assistant.
+            $nameSection
+            Preferred language: ${settings.preferredLanguage}. Reply naturally in that language style.
+            Be concise, practical, and friendly.
+            Do not mention model names, OpenRouter, or that you are an AI model.
+            Never say you are Bard/Google AI/LLM.
+        """.trimIndent()
     }
+
+    suspend fun clearConversation() = chatDao.clearAll()
 }
