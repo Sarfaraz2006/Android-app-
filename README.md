@@ -21,7 +21,7 @@ gradle assembleDebug
 
 Output:
 
-`app/build/outputs/apk/debug/app-debug.apk` (CI also publishes unique filename artifacts: `aria-studio-debug-<run_number>.apk`)
+`app/build/outputs/apk/debug/app-debug.apk` (CI also publishes unique filename artifacts: `elix-debug-<run_number>.apk`)
 
 ## Build release APK locally
 
@@ -37,9 +37,10 @@ Output:
 
 Workflow: `.github/workflows/android.yml`
 
-- Builds debug APK on push / PR
+- Runs `lintDebug` + `testDebugUnitTest` + debug APK build on push/PR
 - Uploads uniquely named APK artifact per run
-- On tags like `v1.0.0`, builds + uploads release APK artifact
+- Uploads lint and unit-test reports as artifacts
+- On tags like `v1.0.0`, builds + uploads release APK artifact as `elix-release-<run_number>.apk`
 
 ## Notes
 

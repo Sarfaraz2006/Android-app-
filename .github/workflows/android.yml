@@ -23,18 +23,38 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      - name: Lint (debug)
+        run: gradle lintDebug
+
+      - name: Unit tests (debug)
+        run: gradle testDebugUnitTest
+
       - name: Build debug APK
         run: gradle assembleDebug
 
       - name: Prepare debug APK with unique filename
         run: |
-          cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/aria-studio-debug-${{ github.run_number }}.apk
+          cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/elix-debug-${{ github.run_number }}.apk
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: aria-studio-debug-${{ github.run_number }}
-          path: app/build/outputs/apk/debug/aria-studio-debug-${{ github.run_number }}.apk
+          name: elix-debug-${{ github.run_number }}
+          path: app/build/outputs/apk/debug/elix-debug-${{ github.run_number }}.apk
+
+      - name: Upload lint report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lint-report-${{ github.run_number }}
+          path: app/build/reports/lint-results-debug.html
+
+      - name: Upload unit test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-report-${{ github.run_number }}
+          path: app/build/reports/tests/testDebugUnitTest
 
   release:
     if: startsWith(github.ref, 'refs/tags/v')
@@ -59,10 +79,10 @@ jobs:
 
       - name: Prepare release APK with unique filename
         run: |
-          cp app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/aria-studio-release-${{ github.run_number }}.apk
+          cp app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/elix-release-${{ github.run_number }}.apk
 
       - name: Upload release APK
         uses: actions/upload-artifact@v4
         with:
-          name: aria-studio-release-${{ github.run_number }}
-          path: app/build/outputs/apk/release/aria-studio-release-${{ github.run_number }}.apk
+          name: elix-release-${{ github.run_number }}
+          path: app/build/outputs/apk/release/elix-release-${{ github.run_number }}.apk
