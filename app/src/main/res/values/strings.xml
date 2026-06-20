@@ -1,3 +1,4 @@
 <resources>
-    <string name="app_name">Aria</string>
+    <string name="app_name">ScreenMate AI</string>
+    <string name="accessibility_service_label">ScreenMate AI screen control</string>
 </resources>

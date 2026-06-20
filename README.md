@@ -1,52 +1,25 @@
-# Aria Android App (Native Kotlin)
+# ScreenMate AI
 
-This repo now contains a **native Android (Jetpack Compose + Kotlin)** AI assistant app named **Aria**.
+Native Android prototype for a ChatGPT-style assistant that can chat, listen, speak, read the visible accessibility tree, and click accessible UI elements after the user enables Android Accessibility permission.
 
-## What this app includes
+## Current capabilities
 
-- ChatGPT-style conversational UI
-- Text input + voice input (speech-to-text)
-- Spoken replies (text-to-speech)
-- Local chat history persistence (Room)
-- In-app **Settings** screen to configure your own provider:
-  - Assistant name
-  - Base URL
-  - Endpoint path
-  - Model name
-  - API key
-  - Temperature
-  - System prompt
-- Works with **OpenAI-compatible chat completion APIs** (OpenAI, OpenRouter, Groq-compatible gateways, Together-compatible endpoints, self-hosted proxies, etc.)
+- Chat UI with assistant/user messages.
+- Voice mode using Android `SpeechRecognizer` and `TextToSpeech`.
+- Settings screen for provider switching:
+  - Mock local assistant for development without keys.
+  - Google Gemini REST API.
+  - OpenRouter chat completions.
+  - OpenAI-compatible chat completions.
+- Accessibility service for screen context and click commands.
+- GitHub Actions workflow that builds and uploads a debug APK artifact.
 
-## Build debug APK locally
+## Important Android limits
 
-```bash
-./gradlew assembleDebug
-```
+The app can read and click only what Android exposes through Accessibility APIs. It cannot bypass secure screens, hidden content, app restrictions, or protected system UI. Screen pixel capture would require a separate MediaProjection consent flow, which is not included in this first prototype.
 
-Output:
+## Build
 
-`app/build/outputs/apk/debug/app-debug.apk`
+GitHub Actions builds the debug APK automatically on pull requests and pushes to `main`.
 
-## Build release APK locally
-
-```bash
-./gradlew assembleRelease
-```
-
-Output:
-
-`app/build/outputs/apk/release/app-release.apk`
-
-## GitHub Actions
-
-Workflow: `.github/workflows/android.yml`
-
-- Builds debug APK on push / PR
-- Uploads APK artifact
-- On tags like `v1.0.0`, builds + uploads release APK artifact
-
-## Notes
-
-- Add API credentials from app Settings before first chat.
-- This client expects an OpenAI-compatible JSON response schema for chat completions.
+For live AI calls, open Settings inside the app and choose a provider, model, endpoint if needed, and API key. Use `Mock` while developing UI and accessibility behavior.
