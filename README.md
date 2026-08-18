@@ -8,6 +8,7 @@ Vexo Forge is an internal, CLI-first AI app-builder prototype for Vexo TeamX. It
 - Node.js 20+
 - Network access for `npm install`
 - Optional real providers:
+  - Install `@google/genai` yourself and set `GEMINI_API_KEY` for Gemini code generation with `FORGE_CODE_PROVIDER=gemini`
   - Install `@anthropic-ai/sdk` yourself and set `ANTHROPIC_API_KEY` for Claude code generation with `FORGE_CODE_PROVIDER=anthropic`
   - Install `e2b` yourself and set `E2B_API_KEY` for future E2B sandbox execution with `FORGE_SANDBOX_PROVIDER=e2b`
   - `VERCEL_TOKEN` for the human-gated deploy step
@@ -18,7 +19,7 @@ Vexo Forge is an internal, CLI-first AI app-builder prototype for Vexo TeamX. It
 npm install
 ```
 
-The committed prototype has no mandatory runtime dependencies. Real Claude/E2B providers are optional so the SSH-only smoke tests can run even when registry policy blocks paid SDK packages.
+The committed prototype has no mandatory runtime dependencies. Real Gemini/Claude/E2B providers are optional so the SSH-only smoke tests can run even when registry policy blocks paid SDK packages.
 
 ## Phase commands
 
@@ -75,9 +76,20 @@ Deployment is intentionally human-gated. The command verifies the secret exists 
 
 ## Provider switching
 
-Default mode uses deterministic local templates, so it works without API keys. To use Claude after adding a real key:
+Default mode uses deterministic local templates, so it works without API keys. To use Gemini after adding the current Google Gen AI SDK and a real key:
 
 ```bash
+npm install @google/genai
+export GEMINI_API_KEY=your_real_key
+export FORGE_CODE_PROVIDER=gemini
+export GEMINI_MODEL=gemini-2.5-flash
+npm run forge -- build --prompt "Build a one-page salon site in Manchester with pink branding"
+```
+
+Claude support remains available too:
+
+```bash
+npm install @anthropic-ai/sdk
 export ANTHROPIC_API_KEY=sk-ant-...
 export FORGE_CODE_PROVIDER=anthropic
 export CLAUDE_MODEL=claude-sonnet-5

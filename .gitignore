@@ -3,3 +3,5 @@ node_modules/
 sessions/*.json
 .env
 .DS_Store
+.gradle/
+build/

@@ -1,6 +1,6 @@
 # Vexo Forge research notes
 
-Verified on 2026-08-17 from live documentation/search results.
+Verified/updated on 2026-08-18 from live documentation/search results.
 
 ## Environment constraints
 
@@ -31,6 +31,22 @@ Sources:
 - https://platform.claude.com/docs/en/about-claude/models/overview
 - https://platform.claude.com/docs/en/api/messages
 
+## Google Gemini API
+
+- Current recommended JavaScript/TypeScript SDK is the Google Gen AI SDK package `@google/genai`, installed with `npm install @google/genai`; Google's docs mark the old `@google/generativeai` library as legacy/not actively maintained.
+- Current standard content-generation REST endpoint is `POST https://generativelanguage.googleapis.com/v1beta/{model=models/*}:generateContent`; the model path format is `models/{model}`.
+- Current request body requires `contents[]` for the conversation/current prompt, with optional `tools`, `toolConfig`, `safetySettings`, `systemInstruction`, and generation config fields.
+- Current JavaScript SDK call shape is `const ai = new GoogleGenAI({}); await ai.models.generateContent({ model, contents })`; Vexo Forge passes `apiKey: process.env.GEMINI_API_KEY` explicitly and requests JSON output with `config.responseMimeType = 'application/json'`.
+- The requested model ID `gemini-2.5-flash` is listed as a Gemini 2.5 Flash endpoint. Google currently lists newer Gemini 3.x Flash models too, but this build defaults to the user-requested `gemini-2.5-flash` and allows override with `GEMINI_MODEL`.
+- Rate limits are measured by RPM, TPM, and RPD, apply per project rather than per API key, and RPD resets at midnight Pacific time. Google states that actual model limits depend on usage tier/account status and should be viewed in AI Studio; exact free-tier RPM/RPD numbers for this operator's project could not be verified without logging into AI Studio.
+
+Sources:
+- https://ai.google.dev/gemini-api/docs/libraries
+- https://ai.google.dev/gemini-api/docs/generate-content/get-started
+- https://ai.google.dev/api/generate-content
+- https://ai.google.dev/gemini-api/docs/models
+- https://ai.google.dev/gemini-api/docs/rate-limits
+
 ## Vercel REST API
 
 - Vercel's REST API base is `https://api.vercel.com`.
@@ -45,4 +61,4 @@ Sources:
 
 ## Architecture decision for this build
 
-The repository now contains a working local-first Vexo Forge prototype for Phases 1-4 and a guarded Phase 5 command. This avoids pretending that external paid/API-key services work in the current environment. Operators can switch from deterministic local template generation to Claude/E2B by exporting the required environment variables.
+The repository now contains a working local-first Vexo Forge prototype for Phases 1-4 and a guarded Phase 5 command. This avoids pretending that external paid/API-key services work in the current environment. Operators can switch from deterministic local template generation to Gemini/Claude/E2B by exporting the required environment variables.
