@@ -9,7 +9,6 @@ function parseJsonResponse(text, provider) {
     throw new Error(`${provider} returned non-JSON codegen output: ${error.message}`);
   }
 }
-
 export async function generateFiles(prompt, { provider = process.env.FORGE_CODE_PROVIDER || 'template' } = {}) {
   if (provider === 'template') return createReactFiles(prompt);
   if (provider === 'anthropic') {

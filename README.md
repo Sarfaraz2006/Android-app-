@@ -9,7 +9,7 @@ Vexo Forge is an internal, CLI-first AI app-builder prototype for Vexo TeamX. It
 - Network access for `npm install`
 - Optional real providers:
   - Install `@google/genai` yourself and set `GEMINI_API_KEY` for Gemini code generation with `FORGE_CODE_PROVIDER=gemini`
-  - Install `@anthropic-ai/sdk` yourself and set `ANTHROPIC_API_KEY` for legacy Claude code generation with `FORGE_CODE_PROVIDER=anthropic`
+  - Install `@anthropic-ai/sdk` yourself and set `ANTHROPIC_API_KEY` for Claude code generation with `FORGE_CODE_PROVIDER=anthropic`
   - Install `e2b` yourself and set `E2B_API_KEY` for future E2B sandbox execution with `FORGE_SANDBOX_PROVIDER=e2b`
   - `VERCEL_TOKEN` for the human-gated deploy step
 
@@ -86,7 +86,7 @@ export GEMINI_MODEL=gemini-2.5-flash
 npm run forge -- build --prompt "Build a one-page salon site in Manchester with pink branding"
 ```
 
-Legacy Claude support remains available for backward compatibility:
+Claude support remains available too:
 
 ```bash
 npm install @anthropic-ai/sdk
