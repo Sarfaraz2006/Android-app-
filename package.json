@@ -1,0 +1,20 @@
+{
+  "name": "vexo-forge",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "bin": {
+    "vexo-forge": "./src/cli.js"
+  },
+  "scripts": {
+    "forge": "node src/cli.js",
+    "phase1": "node src/cli.js phase1",
+    "phase2": "node src/cli.js phase2 --prompt \"Build a one-page dental clinic site in Croydon with booking CTA, gallery, contact form, dark blue colors\"",
+    "phase3": "node src/cli.js phase3",
+    "test": "node --test",
+    "lint": "node --check src/*.js test/*.test.js"
+  },
+  "dependencies": {},
+  "devDependencies": {},
+  "optionalDependencies": {}
+}

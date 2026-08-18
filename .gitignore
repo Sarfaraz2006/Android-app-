@@ -1,0 +1,7 @@
+node_modules/
+.forge-projects/
+sessions/*.json
+.env
+.DS_Store
+.gradle/
+build/
