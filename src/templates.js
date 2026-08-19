@@ -1,39 +1,334 @@
-function titleCase(value) {
-  return value.replace(/\w\S*/g, (word) => word[0].toUpperCase() + word.slice(1).toLowerCase());
+/**
+ * templates.js — Autonomous Built-in Agentic Code Generator for Vexo Forge
+ * Generates dynamic, production-ready, dependency-light web apps for any business vertical,
+ * with modern CSS design tokens, mobile-first responsive layout, interactive JS, and build scripts.
+ */
+
+function titleCase(str) {
+  return str
+    .toLowerCase()
+    .split(' ')
+    .map((word) => (word ? word[0].toUpperCase() + word.slice(1) : ''))
+    .join(' ');
 }
 
 export function parsePrompt(prompt) {
   const lower = prompt.toLowerCase();
-  const vertical = lower.includes('salon') ? 'salon' : lower.includes('real estate') ? 'real estate' : lower.includes('dental') ? 'dental clinic' : 'local business';
-  const locationMatch = prompt.match(/(?:in|near|for)\s+([A-Z][A-Za-z\s-]{2,40}?)(?:,| with| sections|$)/);
-  const location = locationMatch ? locationMatch[1].trim() : 'your city';
-  const scheme = lower.includes('dark') ? 'dark' : lower.includes('pink') ? 'pink' : lower.includes('green') ? 'green' : 'blue';
-  return { vertical, location, scheme, name: `Vexo ${titleCase(vertical)}` };
+
+  // 1. Business Vertical Detection
+  let vertical = 'Local Business';
+  let category = 'general';
+  let defaultServices = ['Consultation', 'Quality Service', 'Client Care', 'Instant Booking'];
+
+  if (lower.includes('dental') || lower.includes('dentist') || lower.includes('teeth')) {
+    vertical = 'Dental Clinic';
+    category = 'medical';
+    defaultServices = ['Teeth Whitening & Hygiene', 'Invisalign & Orthodontics', 'Dental Implants', 'Emergency Dental Care'];
+  } else if (lower.includes('salon') || lower.includes('hair') || lower.includes('spa') || lower.includes('beauty')) {
+    vertical = 'Hair & Beauty Salon';
+    category = 'beauty';
+    defaultServices = ['Hair Styling & Cut', 'Luxury Facial & Spa', 'Nail Art & Manicure', 'Bridal Makeovers'];
+  } else if (lower.includes('gym') || lower.includes('fitness') || lower.includes('trainer')) {
+    vertical = 'Fitness & Training Club';
+    category = 'fitness';
+    defaultServices = ['Personal Coaching', 'HIIT & Group Classes', 'Nutrition Planning', '24/7 Gym Access'];
+  } else if (lower.includes('real estate') || lower.includes('property') || lower.includes('realtor')) {
+    vertical = 'Luxury Real Estate';
+    category = 'property';
+    defaultServices = ['Residential Buying', 'Commercial Leasing', 'Property Valuation', 'VIP Property Tours'];
+  } else if (lower.includes('restaurant') || lower.includes('cafe') || lower.includes('coffee') || lower.includes('dining')) {
+    vertical = 'Artisanal Dining & Cafe';
+    category = 'food';
+    defaultServices = ['Chef Special Menu', 'Private Dining & Events', 'Artisanal Coffee Bar', 'Online Table Reservation'];
+  } else if (lower.includes('saas') || lower.includes('software') || lower.includes('app') || lower.includes('tech')) {
+    vertical = 'AI & Cloud Platform';
+    category = 'tech';
+    defaultServices = ['Agentic Workflow Automation', 'Real-Time Telemetry & Data', 'Secure Cloud APIs', 'Enterprise Integration'];
+  }
+
+  // 2. Location Detection
+  const locationMatch = prompt.match(/(?:in|near|for|at)\s+([A-Z][A-Za-z\s-]{2,30}?)(?:,|\.|\s+with|\s+sections|\s+and|$)/);
+  const location = locationMatch ? locationMatch[1].trim() : 'Prime Location';
+
+  // 3. Color Theme Detection
+  let primary = '#3b82f6'; // Blue
+  let bgDark = '#0b132b';
+  let accent = '#60a5fa';
+
+  if (lower.includes('dark blue') || lower.includes('navy')) {
+    primary = '#1d4ed8';
+    bgDark = '#0a1128';
+    accent = '#38bdf8';
+  } else if (lower.includes('pink') || lower.includes('rose') || lower.includes('magenta')) {
+    primary = '#ec4899';
+    bgDark = '#1c0919';
+    accent = '#f472b6';
+  } else if (lower.includes('green') || lower.includes('emerald')) {
+    primary = '#10b981';
+    bgDark = '#061a14';
+    accent = '#34d399';
+  } else if (lower.includes('purple') || lower.includes('violet')) {
+    primary = '#8b5cf6';
+    bgDark = '#130d24';
+    accent = '#a78bfa';
+  } else if (lower.includes('gold') || lower.includes('amber') || lower.includes('orange')) {
+    primary = '#f59e0b';
+    bgDark = '#1c1305';
+    accent = '#fbbf24';
+  }
+
+  const brandName = `${titleCase(location)} ${vertical}`;
+
+  return {
+    vertical,
+    category,
+    location,
+    brandName,
+    primary,
+    bgDark,
+    accent,
+    services: defaultServices,
+  };
 }
 
 export function createReactFiles(prompt) {
   const spec = parsePrompt(prompt);
-  const accent = spec.scheme === 'pink' ? '#ec4899' : spec.scheme === 'green' ? '#16a34a' : '#2563eb';
-  const dark = spec.scheme === 'dark' ? '#07111f' : '#0f172a';
-  const app = `const services = ['Premium consultation', 'Online booking', 'Before/after gallery', 'Fast follow-up'];
-const root = document.getElementById('root');
-root.innerHTML = \`<main>
-  <section class="hero">
-    <p class="eyebrow">${spec.location} • ${spec.vertical}</p>
-    <h1>${spec.name} experiences built to convert visitors into booked clients.</h1>
-    <p>Launch-ready one-page demo generated by Vexo Forge with services, proof, gallery, and contact capture.</p>
-    <a class="button" href="#contact">Book a consultation</a>
-  </section>
-  <section class="grid">${'${services.map((service) => `<article><h2>${service}</h2><p>Clear copy, polished layout, and mobile-first calls to action for ' + spec.location + ' prospects.</p></article>`).join(\'\')}'}</section>
-  <section><h2>Gallery</h2><div class="gallery"><span>Before</span><span>After</span><span>Client Story</span></div></section>
-  <section id="contact" class="contact"><h2>Contact</h2><form><input placeholder="Name" /><input placeholder="Phone or email" /><textarea placeholder="What should we help with?"></textarea><button>Send enquiry</button></form></section>
-</main>\`;`;
+
+  const mainJs = `// Generated by Vexo Forge Autonomous Agent Engine
+const spec = ${JSON.stringify(spec, null, 2)};
+
+function renderApp() {
+  const root = document.getElementById('root');
+  if (!root) return;
+
+  root.innerHTML = \`
+    <nav class="nav-bar">
+      <div class="nav-brand">\${spec.brandName}</div>
+      <div class="nav-links">
+        <a href="#services">Services</a>
+        <a href="#about">About</a>
+        <a href="#contact" class="btn-nav">Book Now</a>
+      </div>
+    </nav>
+
+    <header class="hero">
+      <div class="hero-badge">Verified Local Excellence in \${spec.location}</div>
+      <h1>Next-Generation \${spec.vertical} Tailored for You</h1>
+      <p class="hero-sub">
+        Premium quality, certified specialists, and seamless digital booking.
+        Experience the gold standard in \${spec.location}.
+      </p>
+      <div class="hero-actions">
+        <a href="#contact" class="btn-primary">Reserve Appointment</a>
+        <a href="#services" class="btn-secondary">Explore Services</a>
+      </div>
+    </header>
+
+    <section id="services" class="section">
+      <div class="section-header">
+        <h2>Specialized Services</h2>
+        <p>Comprehensive solutions designed around client comfort and precision.</p>
+      </div>
+      <div class="card-grid">
+        \${spec.services.map((s, i) => \`
+          <div class="service-card">
+            <div class="card-icon">0\${i + 1}</div>
+            <h3>\${s}</h3>
+            <p>Tailored treatment protocols with state-of-the-art methodology in \${spec.location}.</p>
+          </div>
+        \`).join('')}
+      </div>
+    </section>
+
+    <section id="about" class="section highlight-box">
+      <div class="highlight-content">
+        <h2>Why Clients in \${spec.location} Choose Us</h2>
+        <div class="stats-grid">
+          <div class="stat-item"><span class="stat-num">99.4%</span><span class="stat-label">Client Satisfaction</span></div>
+          <div class="stat-item"><span class="stat-num">15+</span><span class="stat-label">Years of Experience</span></div>
+          <div class="stat-item"><span class="stat-num">5,000+</span><span class="stat-label">Happy Clients</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="contact" class="section">
+      <div class="section-header">
+        <h2>Book Your Consultation</h2>
+        <p>Fast response within 15 minutes during operating hours.</p>
+      </div>
+      <form id="contact-form" class="form-container" onsubmit="event.preventDefault(); alert('Booking submitted successfully! Our team will call you shortly.');">
+        <div class="form-row">
+          <input type="text" placeholder="Full Name" required />
+          <input type="tel" placeholder="Phone Number" required />
+        </div>
+        <input type="email" placeholder="Email Address" required />
+        <textarea rows="4" placeholder="How can we assist you?" required></textarea>
+        <button type="submit" class="btn-submit">Confirm Booking</button>
+      </form>
+    </section>
+
+    <footer class="footer">
+      <p>&copy; \${new Date().getFullYear()} \${spec.brandName}. All rights reserved.</p>
+    </footer>
+  \`;
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', renderApp);
+} else {
+  renderApp();
+}
+`;
+
+  const styleCss = `:root {
+  --primary: ${spec.primary};
+  --accent: ${spec.accent};
+  --bg-dark: ${spec.bgDark};
+  --bg-card: rgba(255, 255, 255, 0.05);
+  --border: rgba(255, 255, 255, 0.12);
+  --text: #f8fafc;
+  --text-muted: #94a3b8;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg-dark); color: var(--text); line-height: 1.6; }
+
+.nav-bar {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 1.5rem 2rem; max-width: 1200px; margin: auto;
+}
+.nav-brand { font-weight: 800; font-size: 1.25rem; color: var(--text); letter-spacing: -0.02em; }
+.nav-links a { color: var(--text-muted); text-decoration: none; margin-left: 1.5rem; font-weight: 500; }
+.nav-links a:hover { color: var(--text); }
+.btn-nav {
+  background: var(--primary); color: #fff !important;
+  padding: 0.5rem 1rem; border-radius: 9999px;
+}
+
+.hero {
+  max-width: 900px; margin: 4rem auto 6rem; text-align: center; padding: 0 1.5rem;
+}
+.hero-badge {
+  display: inline-block; background: rgba(59, 130, 246, 0.15); color: var(--accent);
+  padding: 0.35rem 1rem; border-radius: 9999px; font-size: 0.875rem; font-weight: 600; margin-bottom: 1.5rem;
+}
+.hero h1 {
+  font-size: clamp(2.5rem, 6vw, 4.2rem); font-weight: 900; line-height: 1.1; margin-bottom: 1.5rem;
+  letter-spacing: -0.03em;
+}
+.hero-sub {
+  font-size: 1.25rem; color: var(--text-muted); max-width: 650px; margin: 0 auto 2.5rem;
+}
+.hero-actions { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+.btn-primary {
+  background: var(--primary); color: #fff; text-decoration: none; font-weight: 700;
+  padding: 0.875rem 2rem; border-radius: 9999px; transition: transform 0.2s, box-shadow 0.2s;
+}
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(59, 130, 246, 0.4); }
+.btn-secondary {
+  background: transparent; color: var(--text); border: 1px solid var(--border);
+  text-decoration: none; font-weight: 600; padding: 0.875rem 2rem; border-radius: 9999px;
+}
+
+.section { max-width: 1100px; margin: 5rem auto; padding: 0 1.5rem; }
+.section-header { text-align: center; margin-bottom: 3rem; }
+.section-header h2 { font-size: 2.25rem; font-weight: 800; margin-bottom: 0.5rem; letter-spacing: -0.02em; }
+.section-header p { color: var(--text-muted); font-size: 1.1rem; }
+
+.card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem; }
+.service-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 1.25rem; padding: 2rem; transition: border-color 0.2s;
+}
+.service-card:hover { border-color: var(--primary); }
+.card-icon { font-size: 1.25rem; font-weight: 900; color: var(--accent); margin-bottom: 1rem; }
+.service-card h3 { font-size: 1.25rem; font-weight: 700; margin-bottom: 0.75rem; }
+.service-card p { color: var(--text-muted); font-size: 0.95rem; }
+
+.highlight-box {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.05));
+  border: 1px solid var(--border); border-radius: 2rem; padding: 3.5rem 2rem; text-align: center;
+}
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 2rem; margin-top: 2rem; }
+.stat-num { display: block; font-size: 2.75rem; font-weight: 900; color: var(--accent); }
+.stat-label { color: var(--text-muted); font-weight: 600; }
+
+.form-container {
+  max-width: 600px; margin: auto; background: var(--bg-card);
+  border: 1px solid var(--border); border-radius: 1.5rem; padding: 2.5rem; display: flex; flex-direction: column; gap: 1rem;
+}
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+@media (max-width: 640px) { .form-row { grid-template-columns: 1fr; } }
+input, textarea {
+  width: 100%; padding: 0.875rem 1.25rem; background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border); border-radius: 0.75rem; color: #fff; font-size: 1rem;
+}
+input:focus, textarea:focus { outline: none; border-color: var(--primary); }
+.btn-submit {
+  background: var(--primary); color: #fff; font-weight: 700; border: none;
+  padding: 1rem; border-radius: 0.75rem; cursor: pointer; font-size: 1rem;
+}
+
+.footer { text-align: center; padding: 3rem 1.5rem; color: var(--text-muted); border-top: 1px solid var(--border); }
+`;
+
   return {
-    'package.json': JSON.stringify({ type: 'module', scripts: { dev: 'node server.js', build: 'node --check src/main.js && node build.js', preview: 'node server.js' }, dependencies: {}, devDependencies: {} }, null, 2),
-    'index.html': '<div id="root"></div><script type="module" src="/src/main.js"></script>',
-    'build.js': "import { mkdirSync, copyFileSync, cpSync } from 'node:fs';\nmkdirSync('dist/src', { recursive: true });\ncopyFileSync('index.html', 'dist/index.html');\ncpSync('src', 'dist/src', { recursive: true });\nconsole.log('built dist/');\n",
-    'server.js': "import http from 'node:http';\nimport { readFile } from 'node:fs/promises';\nimport { extname, join } from 'node:path';\nconst root = process.env.SERVE_ROOT || '.';\nconst port = Number(process.env.PORT || 5173);\nconst types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css' };\nhttp.createServer(async (req, res) => {\n  const url = req.url === '/' ? '/index.html' : req.url;\n  try { const file = await readFile(join(root, url)); res.writeHead(200, { 'content-type': types[extname(url)] || 'text/plain' }); res.end(file); }\n  catch { res.writeHead(404); res.end('Not found'); }\n}).listen(port, '0.0.0.0', () => console.log(`Preview listening on http://0.0.0.0:${port}`));\n",
-    'src/main.js': app,
-    'src/style.css': `:root{font-family:Inter,system-ui,sans-serif;color:white;background:${dark}}body{margin:0}main{max-width:1120px;margin:auto;padding:32px}.hero{padding:80px 24px;border-radius:32px;background:linear-gradient(135deg,${dark},${accent});box-shadow:0 24px 80px #0008}.eyebrow{text-transform:uppercase;letter-spacing:.18em;color:#bfdbfe}h1{font-size:clamp(2.4rem,7vw,5.5rem);line-height:.95;max-width:920px}.hero p{font-size:1.2rem;max-width:720px}.button,button{display:inline-block;background:white;color:${dark};padding:14px 22px;border-radius:999px;font-weight:800;border:0;text-decoration:none}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px;margin:32px 0}.grid article,.contact,.gallery span{background:#ffffff12;border:1px solid #ffffff22;border-radius:24px;padding:22px}.gallery{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px}.gallery span{min-height:120px;display:grid;place-items:center}form{display:grid;gap:12px}input,textarea{padding:14px;border-radius:14px;border:1px solid #ffffff33;background:#020617;color:white}textarea{min-height:120px}`
+    'package.json': JSON.stringify(
+      {
+        name: spec.brandName.toLowerCase().replace(/[^a-z0-9]/g, '-'),
+        version: '1.0.0',
+        type: 'module',
+        scripts: {
+          dev: 'node server.js',
+          build: 'node --check src/main.js && node build.js',
+          preview: 'node server.js',
+        },
+        dependencies: {},
+        devDependencies: {},
+      },
+      null,
+      2
+    ),
+    'index.html': `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${spec.brandName}</title>
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>`,
+    'build.js': `import { mkdirSync, copyFileSync, cpSync } from 'node:fs';
+mkdirSync('dist/src', { recursive: true });
+copyFileSync('index.html', 'dist/index.html');
+cpSync('src', 'dist/src', { recursive: true });
+console.log('Build completed successfully. Output in /dist');
+`,
+    'server.js': `import http from 'node:http';
+import { readFile } from 'node:fs/promises';
+import { extname, join } from 'node:path';
+const root = process.env.SERVE_ROOT || '.';
+const port = Number(process.env.PORT || 5173);
+const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css' };
+http.createServer(async (req, res) => {
+  const url = req.url === '/' ? '/index.html' : req.url;
+  try {
+    const file = await readFile(join(root, url));
+    res.writeHead(200, { 'content-type': types[extname(url)] || 'text/plain' });
+    res.end(file);
+  } catch {
+    res.writeHead(404);
+    res.end('Not found');
+  }
+}).listen(port, '0.0.0.0', () => console.log(\`Preview listening on http://0.0.0.0:\${port}\`));
+`,
+    'src/main.js': mainJs,
+    'src/style.css': styleCss,
   };
 }

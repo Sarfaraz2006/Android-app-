@@ -19,8 +19,10 @@
     "phase2": "node src/cli.js phase2 --prompt \"Build a one-page dental clinic in Croydon, dark blue, booking CTA, gallery, contact form\"",
     "phase3": "node src/cli.js phase3"
   },
-  "devDependencies": {},
   "engines": {
     "node": ">=18"
+  },
+  "dependencies": {
+    "@google/genai": "^2.17.1"
   }
 }
