@@ -1,64 +1,138 @@
-# Vexo Forge research notes
+# Vexo Forge — Research Notes
 
-Verified/updated on 2026-08-18 from live documentation/search results.
+Last fully updated: **2026-08-19** (live-verified from docs and GitHub searches).
 
-## Environment constraints
+---
 
-Target runtime is a Hetzner CX23 VPS with Ubuntu and SSH-only access from Termius/Termux. Vexo Forge is therefore CLI-first, logs all results to stdout/stderr, stores sessions as JSON, and does not require a GUI browser for core checks.
+## Step 0 Research — OpenCode Architecture Pivot
 
-## E2B
+### 1. OpenCode Install Methods (Verified)
 
-- Current JavaScript install command verified from the E2B repository README: `npm i e2b`.
-- Current Python install command verified: `pip install e2b`.
-- Auth is by `E2B_API_KEY=e2b_***` environment variable.
-- Basic Node API shown by E2B is `import Sandbox from 'e2b'`, `await Sandbox.create()`, then `sandbox.commands.run(...)`.
-- Code Interpreter remains a separate SDK (`@e2b/code-interpreter`) for `runCode()` style execution.
-- Free-tier quota and exact timeout limits could not be verified from public indexed docs in this session; the implementation defaults to a local filesystem sandbox and only attempts E2B when `FORGE_SANDBOX_PROVIDER=e2b` and `E2B_API_KEY` are set.
+**Package name:** `opencode-ai` (npm) — **not** `opencode` (that is a different, unrelated package).
 
-Sources:
-- https://github.com/e2b-dev/e2b
-- https://e2b.dev/docs
+| Method | Command | Works in Termux (no proot)? | Works on Ubuntu VPS? |
+|--------|---------|----------------------------|---------------------|
+| npm global | `npm install -g opencode-ai` | ❌ Binary misdetects Bionic libc | ✅ Clean |
+| curl installer | `curl -fsSL https://opencode.ai/install \| bash` | ❌ Downloads standard Linux binary incompatible with Android Bionic | ✅ Clean |
+| brew | `brew install anomalyco/tap/opencode` | ❌ Homebrew not available in base Termux | ✅ macOS/Linux |
+| Community Termux script | `curl -fsSL https://raw.githubusercontent.com/superman-enamy/opencode-termux-installer/main/install.sh \| bash` | ✅ Pre-compiled native aarch64 binary | N/A |
+| proot-distro Ubuntu inside Termux | `pkg install proot-distro && proot-distro install ubuntu` then standard npm inside | ✅ Full glibc env — most reliable | N/A |
 
-## Anthropic Claude API
+**Design decision:**
+- On Termux (no proot): use the community installer, documented in README.
+- On Ubuntu VPS: `npm install -g opencode-ai`.
+- Vexo Forge does NOT vendor or bundle OpenCode — it stays an external dependency.
+- `forge` wrapper calls OpenCode as a subprocess. If `opencode` not in PATH it prints a clear install-it-first message and exits 1.
 
-- Anthropic's model overview lists current Claude API IDs including `claude-fable-5`, `claude-opus-5`, `claude-sonnet-5`, and `claude-haiku-4-5-20251001`.
-- The docs recommend Opus 5 for complex agentic coding and Sonnet 5 as a speed/intelligence balance.
-- This repo defaults `CLAUDE_MODEL` to `claude-sonnet-5` when `FORGE_CODE_PROVIDER=anthropic` is selected.
-- The live implementation requires `ANTHROPIC_API_KEY` and uses the official `@anthropic-ai/sdk` package. No placeholder key is shipped.
-- Pricing/rate-limit comfort for a 3-4 retry loop could not be verified without account-specific console limits; treat this as an operator check before enabling real Claude calls.
+---
 
-Sources:
-- https://platform.claude.com/docs/en/about-claude/models/overview
-- https://platform.claude.com/docs/en/api/messages
+### 2. OpenCode Provider Configuration (Verified)
 
-## Google Gemini API
+Auth stored in `~/.local/share/opencode/auth.json` after interactive `/connect`.
 
-- Current recommended JavaScript/TypeScript SDK is the Google Gen AI SDK package `@google/genai`, installed with `npm install @google/genai`; Google's docs mark the old `@google/generativeai` library as legacy/not actively maintained.
-- Current standard content-generation REST endpoint is `POST https://generativelanguage.googleapis.com/v1beta/{model=models/*}:generateContent`; the model path format is `models/{model}`.
-- Current request body requires `contents[]` for the conversation/current prompt, with optional `tools`, `toolConfig`, `safetySettings`, `systemInstruction`, and generation config fields.
-- Current JavaScript SDK call shape is `const ai = new GoogleGenAI({}); await ai.models.generateContent({ model, contents })`; Vexo Forge passes `apiKey: process.env.GEMINI_API_KEY` explicitly and requests JSON output with `config.responseMimeType = 'application/json'`.
-- The requested model ID `gemini-2.5-flash` is listed as a Gemini 2.5 Flash endpoint. Google currently lists newer Gemini 3.x Flash models too, but this build defaults to the user-requested `gemini-2.5-flash` and allows override with `GEMINI_MODEL`.
-- Rate limits are measured by RPM, TPM, and RPD, apply per project rather than per API key, and RPD resets at midnight Pacific time. Google states that actual model limits depend on usage tier/account status and should be viewed in AI Studio; exact free-tier RPM/RPD numbers for this operator's project could not be verified without logging into AI Studio.
+For non-interactive/scripted use, providers are configured in `opencode.json`:
 
-Sources:
-- https://ai.google.dev/gemini-api/docs/libraries
-- https://ai.google.dev/gemini-api/docs/generate-content/get-started
-- https://ai.google.dev/api/generate-content
-- https://ai.google.dev/gemini-api/docs/models
-- https://ai.google.dev/gemini-api/docs/rate-limits
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "anthropic": {
+      "options": { "apiKey": "{env:ANTHROPIC_API_KEY}" }
+    },
+    "google": {
+      "options": { "apiKey": "{env:GEMINI_API_KEY}" }
+    }
+  },
+  "model": "anthropic/claude-sonnet-5"
+}
+```
 
-## Vercel REST API
+- `{env:VAR_NAME}` interpolation avoids hardcoded keys.
+- Global config: `~/.config/opencode/opencode.json`
+- Project config: `./opencode.json` (overrides global)
+- Forge auto-writes a minimal `opencode.json` at `forge init` time based on which env vars are present.
 
-- Vercel's REST API base is `https://api.vercel.com`.
-- Vercel documents creating deployments with `POST` to the deployment endpoint.
-- For non-Git deployments, Vercel says files are uploaded first through the file upload API and then referenced by the deployment request.
-- Because deploy-to-production is human-gated in the PRD, the current CLI stops at the Vercel gate unless `VERCEL_TOKEN` is present, and still reports that operator approval/integration completion is needed.
+---
 
-Sources:
-- https://vercel.com/docs/rest-api
-- https://vercel.com/docs/rest-api/deployments/create-a-new-deployment
-- https://vercel.com/docs/deployments
+### 3. OpenCode `opencode serve` — Headless Server Mode (Verified)
 
-## Architecture decision for this build
+```bash
+opencode serve [--port 4096] [--hostname 127.0.0.1]
+```
 
-The repository now contains a working local-first Vexo Forge prototype for Phases 1-4 and a guarded Phase 5 command. This avoids pretending that external paid/API-key services work in the current environment. Operators can switch from deterministic local template generation to Gemini/Claude/E2B by exporting the required environment variables.
+- Starts HTTP server exposing an **OpenAPI 3.1 spec** on port 4096 by default.
+- Auth via `OPENCODE_SERVER_PASSWORD` (HTTP Basic Auth). Username defaults to `opencode`.
+- Official JS/TS SDK: `@opencode-ai/sdk` for programmatic control.
+- Attach CLI to running server: `opencode run --attach http://localhost:4096 "Your prompt"`
+- Logs: `~/.local/share/opencode/log/`
+- Headless requires pre-granted tool permissions in `opencode.json` (`bash`, `edit`, `read`) or tasks block waiting for interactive approval.
+
+**Forge usage:** Subprocess invocation for single-shot builds now. `opencode serve` reserved for future UI layer.
+
+---
+
+### 4. OpenCode Plugin System (Verified)
+
+- Full TypeScript plugin API: `.opencode/plugins/` (project-level), `~/.config/opencode/plugins/` (global), or npm-listed in `opencode.json`.
+- SDK: `@opencode-ai/plugin`
+- Hooks available: `session.created`, `session.idle`, `message.updated`, `tool.execute.before`, `tool.execute.after`
+
+**Decision:** We do NOT use the plugin system for sandbox execution in this iteration. Subprocess wrapping is simpler, more portable, and requires no TypeScript compilation. Will revisit for live-preview/deploy phase.
+
+---
+
+### 5. E2B Node.js SDK — Termux Compatibility (Verified)
+
+| Environment | `npm install e2b` result |
+|-------------|--------------------------|
+| Ubuntu VPS / standard Linux | ✅ Installs cleanly — pure JS, no native compile |
+| Termux (Bionic, no proot) | ⚠️ Conditional — no mandatory native compilation but Bionic differences may surface in sub-deps |
+| proot-distro Ubuntu in Termux | ✅ Fully reliable |
+
+**Architecture decision:** E2B is strictly opt-in via `FORGE_EXECUTION_MODE=e2b`. Uses dynamic `import()` so the module is never loaded in local mode. Missing `E2B_API_KEY` gives a clear error, never a crash.
+
+---
+
+## Previous Research (E2B, Claude, Gemini — from 2026-08-18)
+
+### E2B
+- Install: `npm i e2b` / `pip install e2b`
+- Auth: `E2B_API_KEY=e2b_***`
+- API: `import Sandbox from 'e2b'`, `await Sandbox.create()`, `sandbox.commands.run(...)`
+- Code Interpreter: separate `@e2b/code-interpreter` SDK
+
+### Anthropic Claude API
+- Current models: `claude-sonnet-5`, `claude-opus-5`, `claude-haiku-4-5-20251001`
+- Default in forge: `claude-sonnet-5`
+
+### Google Gemini API
+- Current SDK: `@google/genai` (`npm install @google/genai`)
+- OpenCode provider key: `google`
+
+---
+
+## Architecture Diagram (Updated 2026-08-19)
+
+```
+User terminal (Termux / VPS / laptop)
+        │
+        ▼
+forge CLI (this repo — thin wrapper, Node.js, no native deps beyond Node itself)
+        │  reads env: GEMINI_API_KEY / ANTHROPIC_API_KEY / OPENAI_API_KEY
+        │  reads env: FORGE_EXECUTION_MODE (local | e2b)
+        ▼
+OpenCode (external dep, user installs separately)
+  Handles: LLM calls, file generation/editing, provider switching
+  Configured via: opencode.json (auto-written by forge init)
+        │
+        ▼
+Execution mode switch:
+  LOCAL (default) — build/test runs via local child_process on current filesystem
+                    works identically on Termux, VPS, laptop
+  E2B   (opt-in)  — project uploaded to E2B cloud sandbox
+                    returns preview URL
+                    fails gracefully if E2B_API_KEY missing or SDK unavailable
+        │
+        ▼
+(Future) Deploy step — Vercel API, human-gated
+```

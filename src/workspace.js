@@ -20,7 +20,7 @@ export function run(command, args, options = {}) {
     const child = spawn(command, args, { cwd: options.cwd, shell: false, env: { ...process.env, ...options.env } });
     let stdout = '';
     let stderr = '';
-    child.stdout.on('data', (data) => { stdout += data; if (options.stream) process.stdout.write(data); });
+    child.stdout.on('data', (data) => { stdout += data; if (options.stream) process.stderr.write(data); });
     child.stderr.on('data', (data) => { stderr += data; if (options.stream) process.stderr.write(data); });
     child.on('close', (code) => resolve({ code, stdout, stderr }));
   });

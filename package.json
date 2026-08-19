@@ -1,20 +1,26 @@
 {
   "name": "vexo-forge",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "private": true,
+  "description": "Vexo Forge — OpenCode-powered agentic web-app generator with optional E2B sandbox",
   "bin": {
-    "vexo-forge": "./src/cli.js"
+    "forge": "./src/forge.js"
   },
   "scripts": {
-    "forge": "node src/cli.js",
+    "forge": "node src/forge.js",
+    "status": "node src/forge.js status",
+    "init": "node src/forge.js init",
+    "build": "node src/forge.js build",
+    "iterate": "node src/forge.js iterate",
+    "deploy": "node src/forge.js deploy",
+    "smoke": "node test/smoke.js",
     "phase1": "node src/cli.js phase1",
-    "phase2": "node src/cli.js phase2 --prompt \"Build a one-page dental clinic site in Croydon with booking CTA, gallery, contact form, dark blue colors\"",
-    "phase3": "node src/cli.js phase3",
-    "test": "node --test",
-    "lint": "node --check src/*.js test/*.test.js"
+    "phase2": "node src/cli.js phase2 --prompt \"Build a one-page dental clinic in Croydon, dark blue, booking CTA, gallery, contact form\"",
+    "phase3": "node src/cli.js phase3"
   },
-  "dependencies": {},
   "devDependencies": {},
-  "optionalDependencies": {}
+  "engines": {
+    "node": ">=18"
+  }
 }
