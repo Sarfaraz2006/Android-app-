@@ -3,30 +3,43 @@ import { requireEnv, logStep } from './logger.js';
 
 /**
  * Strip markdown fences and parse JSON safely.
+ * Normalizes all file contents to strings.
  */
 function parseJsonResponse(text, provider) {
   const cleaned = text
     .replace(/^```(?:json)?\s*/im, '')
     .replace(/```\s*$/im, '')
     .trim();
+
+  let parsed;
   try {
-    return JSON.parse(cleaned);
+    parsed = JSON.parse(cleaned);
   } catch (err) {
     throw new Error(
-      `${provider} returned non-JSON output: ${err.message}\n` +
-      `First 300 chars: ${cleaned.slice(0, 300)}`
+      `${provider} codegen output could not be parsed as JSON: ${err.message}\n` +
+      `Raw output length: ${text.length} chars\n` +
+      `First 300 chars: ${cleaned.slice(0, 300)}\n` +
+      `Last 200 chars: ${cleaned.slice(-200)}`
     );
   }
+
+  // Normalize: ensure every file value is a string
+  const normalized = {};
+  for (const [key, val] of Object.entries(parsed)) {
+    normalized[key] = typeof val === 'string' ? val : JSON.stringify(val, null, 2);
+  }
+  return normalized;
 }
 
 /**
- * Call Gemini REST API directly via Node fetch() with a 25s timeout.
+ * Call Gemini REST API directly via Node fetch().
+ * Strict error handling — NO silent fallbacks.
  */
 async function geminiRestCall(apiKey, model, prompt) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 25_000); // 25s timeout
+  const timer = setTimeout(() => controller.abort(), 45_000); // 45s hard timeout
 
   let res;
   try {
@@ -36,9 +49,24 @@ async function geminiRestCall(apiKey, model, prompt) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { maxOutputTokens: 4096, temperature: 0.7 },
+        generationConfig: {
+          maxOutputTokens: 8192,
+          temperature: 0.7,
+          responseMimeType: 'application/json',
+        },
+        safetySettings: [
+          { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
+          { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
+          { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
+          { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
+        ],
       }),
     });
+  } catch (fetchErr) {
+    if (fetchErr.name === 'AbortError') {
+      throw new Error(`Gemini API timed out after 45s (free-tier latency/rate limit).`);
+    }
+    throw new Error(`Gemini network connection failed: ${fetchErr.message}`);
   } finally {
     clearTimeout(timer);
   }
@@ -46,79 +74,84 @@ async function geminiRestCall(apiKey, model, prompt) {
   const data = await res.json();
 
   if (data.error) {
-    throw new Error(`Gemini API error ${data.error.code}: ${data.error.message}`);
+    throw new Error(`Gemini API Error [${data.error.code}]: ${data.error.message}`);
   }
 
-  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+  const candidate = data?.candidates?.[0];
+  const finishReason = candidate?.finishReason;
+
+  if (finishReason === 'MAX_TOKENS') {
+    throw new Error(
+      `Gemini hit MAX_TOKENS limit (output was truncated mid-generation). Free-tier token limit reached for this single prompt.`
+    );
+  }
+
+  if (finishReason === 'RECITATION' || finishReason === 'SAFETY') {
+    throw new Error(`Gemini generation filtered by safety filter: ${finishReason} (${candidate?.finishMessage || ''})`);
+  }
+
+  const text = candidate?.content?.parts?.[0]?.text ?? '';
   if (!text) {
-    throw new Error('Gemini returned an empty response.');
+    throw new Error(`Gemini returned an empty response. Candidate status: ${JSON.stringify(candidate || {})}`);
   }
   return text;
 }
 
-export async function generateFiles(prompt, { provider = process.env.FORGE_CODE_PROVIDER || 'agent' } = {}) {
+export async function generateFiles(prompt, { provider = process.env.FORGE_CODE_PROVIDER || 'template' } = {}) {
   const selectedProvider = provider.toLowerCase();
 
-  // ── Built-in Autonomous Agent / Template Mode ──────────────────────────────
-  if (selectedProvider === 'agent' || selectedProvider === 'template' || selectedProvider === 'synthetic') {
-    logStep('codegen:agent', 'Using Autonomous Built-in Agent Engine');
+  // ── 1. Built-in Template Engine (Explicit opt-in via FORGE_CODE_PROVIDER=template) ─
+  if (selectedProvider === 'template') {
+    logStep('codegen', 'Using built-in template engine (FORGE_CODE_PROVIDER=template)');
     return createReactFiles(prompt);
   }
 
-  // ── Anthropic Claude ───────────────────────────────────────────────────────
+  // ── 2. Anthropic Claude (Strict — NO silent fallback) ──────────────────────
   if (selectedProvider === 'anthropic') {
-    try {
-      requireEnv('ANTHROPIC_API_KEY', 'Claude code generation');
-      const Anthropic = (await import('@anthropic-ai/sdk')).default;
-      const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-      const response = await client.messages.create({
-        model: process.env.CLAUDE_MODEL || 'claude-sonnet-5',
-        max_tokens: 4096,
-        messages: [{
-          role: 'user',
-          content:
-            'Return ONLY a valid JSON object (no markdown, no backticks) mapping ' +
-            'file paths to file contents: index.html, src/main.js, src/style.css, package.json, build.js, server.js. ' +
-            `Prompt: ${prompt}`,
-        }],
-      });
-      const text = response.content.filter((p) => p.type === 'text').map((p) => p.text).join('\n');
-      return parseJsonResponse(text, 'Anthropic');
-    } catch (err) {
-      logStep('warn', `Claude provider failed (${err.message}). Auto-recovering via Autonomous Agent Engine.`);
-      return createReactFiles(prompt);
-    }
+    requireEnv('ANTHROPIC_API_KEY', 'Claude code generation');
+    const Anthropic = (await import('@anthropic-ai/sdk')).default;
+    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    logStep('codegen:anthropic', 'Calling Claude API...');
+    const response = await client.messages.create({
+      model: process.env.CLAUDE_MODEL || 'claude-sonnet-5',
+      max_tokens: 4096,
+      messages: [{
+        role: 'user',
+        content:
+          'Return ONLY a valid JSON object mapping file paths to file contents. ' +
+          'Keys: "package.json", "index.html", "src/main.js", "src/style.css", "build.js", "server.js". ' +
+          `Prompt: ${prompt}`,
+      }],
+    });
+    const text = response.content.filter((p) => p.type === 'text').map((p) => p.text).join('\n');
+    return parseJsonResponse(text, 'Anthropic');
   }
 
-  // ── Google Gemini (Direct REST with Auto-Healing Fallback) ─────────────────
+  // ── 3. Google Gemini (Strict — NO silent fallback) ────────────────────────
   if (selectedProvider === 'gemini') {
+    requireEnv('GEMINI_API_KEY', 'Gemini code generation');
     const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      logStep('warn', 'GEMINI_API_KEY not set. Auto-recovering via Autonomous Agent Engine.');
-      return createReactFiles(prompt);
-    }
+    // gemini-3.1-flash-lite is the proven fast, stable model with zero recitation filter issues
+    const model = process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
 
-    const model = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
     const geminiPrompt =
-      'Return ONLY a valid JSON object (no markdown, no backticks, no explanation). ' +
-      'The JSON maps file paths (strings) to file contents (strings). ' +
-      'Generate a complete, working, dependency-light static web app with these exact files: ' +
-      'index.html, src/main.js, src/style.css, package.json (with build and dev scripts), build.js, server.js. ' +
-      `Prompt: ${prompt}`;
+      'Generate an original, bespoke single-page web application project. ' +
+      'Return a valid JSON object mapping relative file paths to their exact file contents. ' +
+      'Required files: ' +
+      '1. "package.json" (must have "type": "module", and scripts: {"build": "node build.js", "dev": "node server.js"})\n' +
+      '2. "index.html" (HTML5 document with <div id="root"></div> and script tag linking src/main.js)\n' +
+      '3. "src/main.js" (vanilla JavaScript that dynamically builds and renders the complete landing page into #root)\n' +
+      '4. "src/style.css" (modern responsive CSS styling)\n' +
+      '5. "build.js" (ES module that creates dist/ directory, copies index.html to dist/index.html, and copies src/ to dist/src/)\n' +
+      '6. "server.js" (simple Node.js HTTP server on port 5173)\n' +
+      `Business Request: ${prompt}`;
 
-    try {
-      logStep('codegen:gemini', `Calling Gemini REST (${model})`);
-      const text = await geminiRestCall(apiKey, model, geminiPrompt);
-      return parseJsonResponse(text, 'Gemini');
-    } catch (err) {
-      logStep('warn', `Gemini API call failed or timed out (${err.message}). Seamlessly auto-recovering via Autonomous Agent Engine.`);
-      return createReactFiles(prompt);
-    }
+    logStep('codegen:gemini', `Calling Gemini REST API (${model})...`);
+    const text = await geminiRestCall(apiKey, model, geminiPrompt);
+    return parseJsonResponse(text, 'Gemini');
   }
 
-  // Unknown provider fallback
-  logStep('warn', `Unknown provider "${provider}". Falling back to Autonomous Agent Engine.`);
-  return createReactFiles(prompt);
+  throw new Error(`Unknown code provider: "${provider}". Supported: template, gemini, anthropic.`);
 }
 
 export async function maybeUseE2B() {

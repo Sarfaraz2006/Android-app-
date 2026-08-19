@@ -11,7 +11,8 @@ export async function writeFiles(root, files) {
   for (const [file, content] of Object.entries(files)) {
     const target = join(root, file);
     await mkdir(dirname(target), { recursive: true });
-    await writeFile(target, content);
+    const data = typeof content === 'string' ? content : JSON.stringify(content, null, 2);
+    await writeFile(target, data);
   }
 }
 
